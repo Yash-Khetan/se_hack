@@ -10,7 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import GradientBackground from '@/components/Shared/GradientBackground';
 import Colors from '@/constants/Colors';
 
-const RAG_BASE_URL = 'https://ragendpoint.onrender.com';
+const RAG_BASE_URL = 'https://rag-qlv2.onrender.com';
 const subjects = ['All Subjects', 'Physics', 'DSA', 'Math', 'Electronics'];
 
 interface Message {
