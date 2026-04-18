@@ -21,19 +21,19 @@ export default {
     warning: '#F59E0B', // Amber
     danger: '#EF4444', // Red
   },
-  // Blue & Light Blue Theme
+  // Premium Blue & Cyan Theme
   theme: {
-    backgroundGradient: ['#040B16', '#020617'] as const, // Deep midnight blue
-    cardGradient: ['rgba(14, 30, 50, 0.6)', 'rgba(8, 20, 35, 0.8)'] as const, // Glassy blue tint
-    accent: '#38BDF8', // Light sky blue / Cyan
-    accentMuted: '#0284C7', // Darker blue
-    accentSecondary: '#3B82F6', // Royal/Vibrant blue
+    backgroundGradient: ['#0B1220', '#0F172A'] as const,
+    cardGradient: ['rgba(18, 26, 43, 0.8)', 'rgba(15, 23, 42, 0.9)'] as const,
+    accent: '#3B82F6',
+    accentMuted: '#1D4ED8',
+    accentSecondary: '#22D3EE',
     text: '#FFFFFF',
-    textMuted: '#94A3B8', // Slate gray-blue
-    success: '#10B981', // Crisp green
-    warning: '#F5A623', // Bright yellow-amber
-    danger: '#EF4444', // Bright red
-    border: 'rgba(56, 189, 248, 0.15)', // Light blue border tint
-    cardSolid: '#0F172A', // Slate 800/900 for solid cards
+    textMuted: '#94A3B8',
+    success: '#10B981',
+    warning: '#F5A623',
+    danger: '#EF4444',
+    border: 'rgba(59, 130, 246, 0.15)',
+    cardSolid: '#121A2B',
   }
 };

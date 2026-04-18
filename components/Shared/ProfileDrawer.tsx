@@ -86,7 +86,7 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
             <LogOut size={20} color={Colors.theme.danger} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </AnimatedBlurView>
       </View>
     </Modal>
   );
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   },
   drawer: {
     width: width * 0.75,
-    backgroundColor: '#040B16',
+    backgroundColor: 'rgba(11, 18, 32, 0.95)',
     borderLeftWidth: 1,
     borderLeftColor: Colors.theme.border,
     padding: 24,

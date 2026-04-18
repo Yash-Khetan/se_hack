@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { QrCode, Plus, Brain, Users } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
+import TouchableScale from '@/components/Shared/TouchableScale';
 
 const actions = [
   { id: 'scan', icon: QrCode, label: 'Scan' },
@@ -10,18 +11,26 @@ const actions = [
   { id: 'squad', icon: Users, label: 'Squad' },
 ];
 
-export default function ActionButtons() {
+interface Props {
+  onActionPress?: (actionId: string) => void;
+}
+
+export default function ActionButtons({ onActionPress }: Props) {
   return (
     <View style={styles.container}>
       {actions.map((action) => {
         const Icon = action.icon;
         return (
-          <TouchableOpacity key={action.id} style={styles.actionItem}>
+          <TouchableScale 
+            key={action.id} 
+            style={styles.actionItem}
+            onPress={() => onActionPress?.(action.id)}
+          >
             <View style={styles.iconButton}>
               <Icon size={24} color={Colors.theme.accent} />
             </View>
             <Text style={styles.label}>{action.label}</Text>
-          </TouchableOpacity>
+          </TouchableScale>
         );
       })}
     </View>

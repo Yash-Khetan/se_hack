@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { User } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
+import TouchableScale from '@/components/Shared/TouchableScale';
 
 interface Props {
   title: string;
@@ -16,9 +17,9 @@ export default function Header({ title, subtitle, onProfilePress }: Props) {
         <Text style={styles.subtitle}>{subtitle}</Text>
         <Text style={styles.title}>{title}</Text>
       </View>
-      <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
+      <TouchableScale onPress={onProfilePress} style={styles.profileButton}>
         <User size={24} color={Colors.theme.accent} />
-      </TouchableOpacity>
+      </TouchableScale>
     </View>
   );
 }
