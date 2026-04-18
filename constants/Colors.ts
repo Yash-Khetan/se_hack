@@ -23,7 +23,7 @@ export default {
   },
   // Premium Blue & Cyan Theme
   theme: {
-    backgroundGradient: ['#0B1220', '#0F172A'] as const,
+    backgroundGradient: ['#020409', '#0A1224'] as const,
     cardGradient: ['rgba(18, 26, 43, 0.8)', 'rgba(15, 23, 42, 0.9)'] as const,
     accent: '#3B82F6',
     accentMuted: '#1D4ED8',

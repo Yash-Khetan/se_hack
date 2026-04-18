@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
     height: width * 0.8,
     borderRadius: width * 0.4,
     opacity: 0.6,
+    overflow: 'hidden',
   },
   orb1: {
     top: -width * 0.2,

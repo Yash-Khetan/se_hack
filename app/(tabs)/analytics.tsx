@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import { Calendar, TrendingDown, AlertTriangle, CheckCircle, Upload } from 'lucide-react-native';
+import { Calendar, TrendingDown, AlertTriangle, CheckCircle, Upload, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import GradientBackground from '@/components/Shared/GradientBackground';
 import TouchableScale from '@/components/Shared/TouchableScale';
 import Colors from '@/constants/Colors';
@@ -51,104 +51,138 @@ function SubjectRow({ name, attended, total, color }: { name: string; attended: 
   );
 }
 
-// --- Heatmap with dates ---
-// 4 weeks x 7 days, ending on the current week
-const heatmapStress = [
-  [0, 1, 2, 1, 3, 0, 0],
-  [1, 2, 1, 0, 2, 3, 0],
-  [0, 1, 3, 2, 1, 1, 0],
-  [2, 0, 1, 3, 2, 1, 1],
-];
-
-// Generate last 4 weeks of dates ending on the current week's Sunday
-function generateDates() {
-  const today = new Date();
-  // Find this week's Monday
-  const dayOfWeek = today.getDay(); // 0=Sun,1=Mon...6=Sat
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() + diffToMonday);
-
-  // Start from 3 weeks before this Monday
-  const start = new Date(thisMonday);
-  start.setDate(thisMonday.getDate() - 21);
-
-  const weeks: { date: number; month: string }[][] = [];
-  for (let w = 0; w < 4; w++) {
-    const week: { date: number; month: string }[] = [];
-    for (let d = 0; d < 7; d++) {
-      const cur = new Date(start);
-      cur.setDate(start.getDate() + w * 7 + d);
-      week.push({
-        date: cur.getDate(),
-        month: cur.toLocaleString('default', { month: 'short' }),
-      });
-    }
-    weeks.push(week);
+// ── Stress level per day-of-month (1-indexed). 28 entries = full 28-day month mock.
+// In a real app this would come from an API keyed by month/year.
+function getMockStressForMonth(year: number, month: number): Record<number, number> {
+  // Deterministic pseudo-random based on year+month so each month looks different
+  const seed = year * 12 + month;
+  const data: Record<number, number> = {};
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const v = ((seed * 31 + d * 17) % 7);
+    data[d] = v < 2 ? 0 : v < 4 ? 1 : v < 6 ? 2 : 3;
   }
-  return weeks;
+  // Sprinkle some zeroes on weekends for realism
+  return data;
 }
 
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 function StressHeatmap() {
-  const weeks = generateDates();
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-indexed
 
   const getColor = (val: number) => {
-    if (val === 0) return 'rgba(255,255,255,0.04)';
-    if (val === 1) return 'rgba(16, 185, 129, 0.5)';
-    if (val === 2) return 'rgba(245, 166, 35, 0.6)';
-    return 'rgba(239, 68, 68, 0.7)';
+    if (val === 0) return 'rgba(255,255,255,0.06)';
+    if (val === 1) return 'rgba(16,185,129,0.55)';
+    if (val === 2) return 'rgba(245,166,35,0.65)';
+    return 'rgba(239,68,68,0.75)';
   };
 
-  // Get month label for each week (use first day's month)
+  const goBack = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const goForward = () => {
+    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+    if (isCurrentMonth) return; // don't go into the future
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+
+  // Build calendar grid
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  // JS getDay(): 0=Sun…6=Sat. Convert to Mon-first: Mon=0…Sun=6
+  const firstDayJS = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const firstDayMon = firstDayJS === 0 ? 6 : firstDayJS - 1;   // shift so Mon=0
+
+  const stressData = getMockStressForMonth(viewYear, viewMonth);
+
+  // Build a flat array of cells: nulls for leading empty slots, then 1..daysInMonth
+  const cells: (number | null)[] = [
+    ...Array(firstDayMon).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full 7-column rows
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  // Split into week rows
+  const weekRows: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weekRows.push(cells.slice(i, i + 7));
+  }
+
   return (
     <View style={styles.heatmapContainer}>
+      {/* Header: title + legend */}
       <View style={styles.heatmapHeader}>
         <Text style={styles.sectionTitle}>📅 Stress Heatmap</Text>
         <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(16,185,129,0.5)' }]} /><Text style={styles.legendText}>Low</Text>
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(245,166,35,0.6)' }]} /><Text style={styles.legendText}>Med</Text>
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(239,68,68,0.7)' }]} /><Text style={styles.legendText}>High</Text>
+          <View style={[styles.legendDot, { backgroundColor: 'rgba(16,185,129,0.55)' }]} />
+          <Text style={styles.legendText}>Low</Text>
+          <View style={[styles.legendDot, { backgroundColor: 'rgba(245,166,35,0.65)' }]} />
+          <Text style={styles.legendText}>Med</Text>
+          <View style={[styles.legendDot, { backgroundColor: 'rgba(239,68,68,0.75)' }]} />
+          <Text style={styles.legendText}>High</Text>
         </View>
       </View>
 
-      {/* Day-of-week headers */}
+      {/* Month navigator */}
+      <View style={styles.monthNav}>
+        <TouchableOpacity style={styles.monthNavBtn} onPress={goBack} activeOpacity={0.7}>
+          <ChevronLeft size={18} color={Colors.theme.accent} />
+        </TouchableOpacity>
+        <Text style={styles.monthNavTitle}>
+          {MONTH_NAMES[viewMonth]} {viewYear}
+        </Text>
+        <TouchableOpacity
+          style={[styles.monthNavBtn, isCurrentMonth && styles.monthNavBtnDisabled]}
+          onPress={goForward}
+          activeOpacity={isCurrentMonth ? 1 : 0.7}
+        >
+          <ChevronRight size={18} color={isCurrentMonth ? Colors.theme.textMuted : Colors.theme.accent} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Day-of-week column headers */}
       <View style={styles.heatmapDayHeaders}>
-        <View style={styles.heatmapWeekLabelPlaceholder} />
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
-          <Text key={i} style={styles.heatmapDayLabel}>{d}</Text>
+        {DAY_LABELS.map((d) => (
+          <Text key={d} style={styles.heatmapDayLabel}>{d}</Text>
         ))}
       </View>
 
-      {/* Rows with week label (start date) + cells */}
+      {/* Calendar grid */}
       <View style={styles.heatmapGrid}>
-        {heatmapStress.map((week, wi) => {
-          const firstDay = weeks[wi][0];
-          const lastDay = weeks[wi][6];
-          // Show month banner if this is first week or month changes
-          const prevFirstDay = wi > 0 ? weeks[wi - 1][0] : null;
-          const showMonthBanner = wi === 0 || firstDay.month !== prevFirstDay?.month;
-          // Week label: "Mar 28" or "Mar 28 – Apr 3" if crosses months
-          const weekLabel = firstDay.month === lastDay.month
-            ? `${firstDay.month} ${firstDay.date}`
-            : `${firstDay.month} ${firstDay.date}`;
-
-          return (
-            <View key={wi}>
-              {showMonthBanner && (
-                <Text style={styles.heatmapMonthBanner}>{firstDay.month} 2026</Text>
-              )}
-              <View style={styles.heatmapRow}>
-                <Text style={styles.heatmapWeekLabel}>{weekLabel}</Text>
-                {week.map((val, di) => (
-                  <View key={di} style={styles.heatmapCellWrapper}>
-                    <View style={[styles.heatmapCell, { backgroundColor: getColor(val) }]} />
-                    <Text style={styles.heatmapDateNum}>{weeks[wi][di].date}</Text>
-                  </View>
-                ))}
+        {weekRows.map((row, wi) => (
+          <View key={wi} style={styles.heatmapRow}>
+            {row.map((day, di) => (
+              <View key={di} style={styles.heatmapCellWrapper}>
+                {day !== null ? (
+                  <>
+                    <View style={[
+                      styles.heatmapCell,
+                      { backgroundColor: getColor(stressData[day] ?? 0) },
+                      day === now.getDate() && isCurrentMonth && styles.heatmapCellToday,
+                    ]} />
+                    <Text style={[
+                      styles.heatmapDateNum,
+                      day === now.getDate() && isCurrentMonth && styles.heatmapDateToday,
+                    ]}>{day}</Text>
+                  </>
+                ) : (
+                  <View style={styles.heatmapCellEmpty} />
+                )}
               </View>
-            </View>
-          );
-        })}
+            ))}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -261,26 +295,51 @@ const styles = StyleSheet.create({
   subjectBarFill: { height: 6, borderRadius: 3 },
   // Heatmap
   heatmapContainer: { marginBottom: 20 },
-  heatmapHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  heatmapHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 10,
+  },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { color: Colors.theme.textMuted, fontSize: 10, marginRight: 6 },
-  heatmapDayHeaders: { flexDirection: 'row', marginBottom: 4 },
-  heatmapWeekLabelPlaceholder: { width: 48 },
-  heatmapDayLabel: { color: Colors.theme.textMuted, fontSize: 9, textAlign: 'center', flex: 1 },
-  heatmapGrid: { gap: 6 },
-  heatmapMonthBanner: {
-    color: Colors.theme.accent,
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 6,
-    marginBottom: 4,
-    paddingLeft: 48,
-    letterSpacing: 0.5,
+  legendText: { color: Colors.theme.textMuted, fontSize: 10, marginRight: 4 },
+  // Month navigator
+  monthNav: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 12,
   },
-  heatmapRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  heatmapWeekLabel: { color: Colors.theme.textMuted, fontSize: 9, width: 48, fontWeight: '500' },
+  monthNavBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(59,130,246,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)',
+  },
+  monthNavBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  monthNavTitle: {
+    color: Colors.theme.text,
+    fontSize: 15, fontWeight: '700', letterSpacing: 0.3,
+  },
+  // Day-of-week headers (7 equal columns, no week-label offset)
+  heatmapDayHeaders: {
+    flexDirection: 'row', marginBottom: 6,
+  },
+  heatmapDayLabel: {
+    flex: 1, color: Colors.theme.textMuted,
+    fontSize: 9, textAlign: 'center', fontWeight: '600',
+  },
+  heatmapGrid: { gap: 4 },
+  heatmapRow: { flexDirection: 'row', gap: 3 },
   heatmapCellWrapper: { flex: 1, alignItems: 'center', gap: 2 },
   heatmapCell: { width: '100%', aspectRatio: 1, borderRadius: 5 },
+  heatmapCellToday: {
+    borderWidth: 1.5, borderColor: Colors.theme.accent,
+  },
+  heatmapCellEmpty: { width: '100%', aspectRatio: 1 },
   heatmapDateNum: { color: Colors.theme.textMuted, fontSize: 8, textAlign: 'center' },
+  heatmapDateToday: { color: Colors.theme.accent, fontWeight: '700' },
 });

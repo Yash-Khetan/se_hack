@@ -1,229 +1,431 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity,
-  FlatList, Modal, Dimensions,
+  Dimensions, Animated as RNAnimated, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  MessageSquare, Video, Mic, Pencil, LayoutGrid, Send, X, Plus, Copy,
-  UserPlus, Users as UsersIcon,
+  Users, Plus, ArrowLeft, Copy, Shield, Hash, User,
+  Sparkles, LogIn, Zap, Lock, Wifi,
 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import GradientBackground from '@/components/Shared/GradientBackground';
-import TouchableScale from '@/components/Shared/TouchableScale';
-import Colors from '@/constants/Colors';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// --- Mock Data ---
-const members = [
-  { id: '1', name: 'Aarav', status: 'online' },
-  { id: '2', name: 'Renee', status: 'online' },
-  { id: '3', name: 'Sanjay', status: 'away' },
-  { id: '4', name: 'Priya', status: 'online' },
-];
+function generateRoomId(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  for (let i = 0; i < 9; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${result.slice(0, 3)}-${result.slice(3, 6)}-${result.slice(6)}`;
+}
 
-const chatMessages = [
-  { id: '1', user: 'Aarav', text: 'Has anyone solved Q4 from the DSA sheet?', time: '4:20 PM' },
-  { id: '2', user: 'Renee', text: 'Yes! Use a modified BFS approach. I dropped it on the whiteboard.', time: '4:22 PM' },
-  { id: '3', user: 'Priya', text: 'Can someone update the Kanban? I finished the intro section.', time: '4:25 PM' },
-];
+function getLocalIp() {
+  try {
+    const uri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || '';
+    const match = uri.match(/([0-9\.]+):/);
+    if (match) return match[1];
+  } catch (e) {}
+  return '';
+}
 
-const kanbanData = {
-  todo: [
-    { id: '1', title: 'Literature Review', assignee: 'Sanjay' },
-    { id: '2', title: 'Data Collection', assignee: 'Priya' },
-  ],
-  doing: [
-    { id: '3', title: 'Algorithm Design', assignee: 'Aarav' },
-    { id: '4', title: 'Write Introduction', assignee: 'Renee' },
-  ],
-  done: [
-    { id: '5', title: 'Problem Statement', assignee: 'Renee' },
-    { id: '6', title: 'Set up repo', assignee: 'Aarav' },
-  ],
-};
+const defaultIp = getLocalIp();
 
-type TabType = 'chat' | 'kanban';
+type ScreenState = 'landing' | 'create' | 'join';
 
 export default function SquadScreen() {
   const insets = useSafeAreaInsets();
-  const bottomOffset = insets.bottom + 60;
+  const router = useRouter();
+  const [screen, setScreen] = useState<ScreenState>('landing');
 
-  const [activeTab, setActiveTab] = useState<TabType>('chat');
-  const [chatInput, setChatInput] = useState('');
-  const [showWhiteboard, setShowWhiteboard] = useState(false);
-  const [showJoin, setShowJoin] = useState(false);
+  // Create Room state
+  const [createName, setCreateName] = useState('');
+  const [roomName, setRoomName] = useState('');
+  const [roomId] = useState(generateRoomId());
+  const [roomPassword, setRoomPassword] = useState('');
+  const [serverUrl, setServerUrl] = useState(defaultIp);
+
+  // Join Room state
+  const [joinName, setJoinName] = useState('');
+  const [joinRoomId, setJoinRoomId] = useState('');
+  const [joinPassword, setJoinPassword] = useState('');
+  const [joinServerUrl, setJoinServerUrl] = useState(defaultIp);
+
+  // Transition animation
+  const fadeAnim = useRef(new RNAnimated.Value(1)).current;
+  const slideAnim = useRef(new RNAnimated.Value(0)).current;
+
+  const navigateTo = (target: ScreenState) => {
+    RNAnimated.parallel([
+      RNAnimated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }),
+      RNAnimated.timing(slideAnim, { toValue: -20, duration: 120, useNativeDriver: true }),
+    ]).start(() => {
+      setScreen(target);
+      slideAnim.setValue(20);
+      RNAnimated.parallel([
+        RNAnimated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        RNAnimated.spring(slideAnim, { toValue: 0, damping: 18, stiffness: 180, useNativeDriver: true }),
+      ]).start();
+    });
+  };
+
+  const copyRoomId = async () => {
+    try {
+      const Clipboard = require('expo-clipboard');
+      await Clipboard.setStringAsync(roomId);
+      Alert.alert('Copied!', 'Room ID copied to clipboard');
+    } catch {
+      Alert.alert('Room ID', roomId);
+    }
+  };
+
+  const buildServerUrl = (ip: string) => {
+    const trimmed = ip.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http')) return trimmed;
+    return `http://${trimmed}:3005`;
+  };
+
+  const handleCreate = () => {
+    if (!createName.trim()) {
+      Alert.alert('Missing info', 'Please enter your name.');
+      return;
+    }
+    if (!roomName.trim()) {
+      Alert.alert('Missing info', 'Please enter a room name.');
+      return;
+    }
+    if (!serverUrl.trim()) {
+      Alert.alert('Missing info', 'Please enter the server IP (e.g. 192.168.1.5).');
+      return;
+    }
+    router.push({
+      pathname: '/meeting',
+      params: {
+        roomName: roomName.trim(),
+        roomId,
+        password: roomPassword,
+        userName: createName.trim(),
+        isHost: 'true',
+        serverUrl: buildServerUrl(serverUrl),
+      },
+    } as any);
+  };
+
+  const handleJoin = () => {
+    if (!joinName.trim() || !joinRoomId.trim()) {
+      Alert.alert('Missing info', 'Please enter your name and the Room ID.');
+      return;
+    }
+    if (!joinServerUrl.trim()) {
+      Alert.alert('Missing info', 'Please enter the server IP (e.g. 192.168.1.5).');
+      return;
+    }
+    router.push({
+      pathname: '/meeting',
+      params: {
+        roomName: 'Meeting Room',
+        roomId: joinRoomId.trim(),
+        password: joinPassword,
+        userName: joinName.trim(),
+        isHost: 'false',
+        serverUrl: buildServerUrl(joinServerUrl),
+      },
+    } as any);
+  };
+
+  // ── LANDING ──
+  const renderLanding = () => (
+    <View style={styles.landingContainer}>
+      <View style={styles.heroSection}>
+        <View style={styles.heroIconWrap}>
+          <View style={styles.heroIconRing}>
+            <Users size={32} color="#3B82F6" />
+          </View>
+          <View style={styles.heroGlow} />
+        </View>
+        <Text style={styles.heroTitle}>SQUADS</Text>
+        <Text style={styles.heroSubtitle}>
+          Real-time collaboration hub{'\n'}Chat, draw, and react together.
+        </Text>
+      </View>
+
+      <View style={styles.cardsContainer}>
+        <TouchableOpacity
+          style={[styles.actionCard, styles.createCard]}
+          onPress={() => navigateTo('create')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardIconWrap}>
+            <View style={[styles.cardIconCircle, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+              <Plus size={24} color="#3B82F6" />
+            </View>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Create Room</Text>
+            <Text style={styles.cardDesc}>Start a new room and share the code</Text>
+          </View>
+          <Sparkles size={18} color="rgba(59,130,246,0.6)" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionCard, styles.joinCard]}
+          onPress={() => navigateTo('join')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardIconWrap}>
+            <View style={[styles.cardIconCircle, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+              <LogIn size={24} color="#10B981" />
+            </View>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Join Room</Text>
+            <Text style={styles.cardDesc}>Enter a room code to join a session</Text>
+          </View>
+          <Zap size={18} color="rgba(16,185,129,0.6)" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.featurePills}>
+        {['Socket.IO', 'Live Chat', 'Whiteboard', 'Emojis'].map((f, i) => (
+          <View key={i} style={styles.pill}>
+            <Text style={styles.pillText}>{f}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  // ── CREATE ROOM ──
+  const renderCreate = () => (
+    <ScrollView
+      style={styles.formScroll}
+      contentContainerStyle={[styles.formContent, { paddingBottom: insets.bottom + 80 }]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableOpacity style={styles.backBtn} onPress={() => navigateTo('landing')}>
+        <ArrowLeft size={20} color="#94A3B8" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
+      <View style={styles.formHeader}>
+        <View style={[styles.formIconCircle, { backgroundColor: 'rgba(59,130,246,0.12)' }]}>
+          <Plus size={22} color="#3B82F6" />
+        </View>
+        <Text style={styles.formTitle}>Create Room</Text>
+        <Text style={styles.formSubtitle}>Set up a new collaborative room</Text>
+      </View>
+
+      {/* Server IP */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Wifi size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Server IP</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={[styles.textField, styles.monoInput]}
+          placeholder="192.168.x.x"
+          placeholderTextColor="#4B5563"
+          value={serverUrl}
+          onChangeText={setServerUrl}
+          keyboardType="numbers-and-punctuation"
+          autoCapitalize="none"
+          returnKeyType="next"
+        />
+        <Text style={styles.fieldHint}>Run `node server/index.js` to see your IP</Text>
+      </View>
+
+      {/* Your Name */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <User size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Your Name</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={styles.textField}
+          placeholder="e.g. Aarav Shah"
+          placeholderTextColor="#4B5563"
+          value={createName}
+          onChangeText={setCreateName}
+          returnKeyType="next"
+        />
+      </View>
+
+      {/* Room Name */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Hash size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Room Name</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={styles.textField}
+          placeholder="e.g. Design Sprint Review"
+          placeholderTextColor="#4B5563"
+          value={roomName}
+          onChangeText={setRoomName}
+          returnKeyType="next"
+        />
+      </View>
+
+      {/* Room ID */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Shield size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Room ID</Text>
+          <View style={styles.autoBadge}>
+            <Text style={styles.autoBadgeText}>Auto-generated</Text>
+          </View>
+        </View>
+        <View style={styles.copyRow}>
+          <View style={styles.roomIdDisplay}>
+            <Text style={styles.roomIdText}>{roomId}</Text>
+          </View>
+          <TouchableOpacity style={styles.copyBtn} onPress={copyRoomId} activeOpacity={0.7}>
+            <Copy size={16} color="#3B82F6" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Password */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Lock size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Room Password</Text>
+          <Text style={styles.optionalText}>(Optional)</Text>
+        </View>
+        <TextInput
+          style={styles.textField}
+          placeholder="Set a password for security"
+          placeholderTextColor="#4B5563"
+          secureTextEntry
+          value={roomPassword}
+          onChangeText={setRoomPassword}
+        />
+      </View>
+
+      <TouchableOpacity style={styles.primaryButton} onPress={handleCreate} activeOpacity={0.8}>
+        <Text style={styles.primaryButtonText}>Create & Join</Text>
+        <Sparkles size={18} color="#fff" />
+      </TouchableOpacity>
+    </ScrollView>
+  );
+
+  // ── JOIN ROOM ──
+  const renderJoin = () => (
+    <ScrollView
+      style={styles.formScroll}
+      contentContainerStyle={[styles.formContent, { paddingBottom: insets.bottom + 80 }]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableOpacity style={styles.backBtn} onPress={() => navigateTo('landing')}>
+        <ArrowLeft size={20} color="#94A3B8" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
+      <View style={styles.formHeader}>
+        <View style={[styles.formIconCircle, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+          <LogIn size={22} color="#10B981" />
+        </View>
+        <Text style={styles.formTitle}>Join Room</Text>
+        <Text style={styles.formSubtitle}>Enter the room details to connect</Text>
+      </View>
+
+      {/* Server IP */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Wifi size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Server IP</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={[styles.textField, styles.monoInput]}
+          placeholder="192.168.x.x"
+          placeholderTextColor="#4B5563"
+          value={joinServerUrl}
+          onChangeText={setJoinServerUrl}
+          keyboardType="numbers-and-punctuation"
+          autoCapitalize="none"
+          returnKeyType="next"
+        />
+      </View>
+
+      {/* Your Name */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <User size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Your Name</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={styles.textField}
+          placeholder="Enter your display name"
+          placeholderTextColor="#4B5563"
+          value={joinName}
+          onChangeText={setJoinName}
+          returnKeyType="next"
+        />
+      </View>
+
+      {/* Room ID */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Shield size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Room ID</Text>
+          <View style={styles.requiredDot} />
+        </View>
+        <TextInput
+          style={[styles.textField, styles.monoInput]}
+          placeholder="XXX-XXX-XXX"
+          placeholderTextColor="#4B5563"
+          value={joinRoomId}
+          onChangeText={setJoinRoomId}
+          autoCapitalize="characters"
+          returnKeyType="next"
+        />
+      </View>
+
+      {/* Password */}
+      <View style={styles.fieldGroup}>
+        <View style={styles.fieldLabel}>
+          <Lock size={14} color="#64748B" />
+          <Text style={styles.fieldLabelText}>Room Password</Text>
+          <Text style={styles.optionalText}>(If set)</Text>
+        </View>
+        <TextInput
+          style={styles.textField}
+          placeholder="Enter room password"
+          placeholderTextColor="#4B5563"
+          secureTextEntry
+          value={joinPassword}
+          onChangeText={setJoinPassword}
+        />
+      </View>
+
+      <TouchableOpacity style={[styles.primaryButton, styles.joinButton]} onPress={handleJoin} activeOpacity={0.8}>
+        <Text style={styles.primaryButtonText}>Join Meeting</Text>
+        <Zap size={18} color="#fff" />
+      </TouchableOpacity>
+    </ScrollView>
+  );
 
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Squad</Text>
-            <Text style={styles.squadName}>🔗 Physics Study Group · 4 members</Text>
-          </View>
-          <TouchableOpacity style={styles.joinBtn} onPress={() => setShowJoin(true)}>
-            <UserPlus size={18} color={Colors.theme.accent} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Members Strip */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.memberStrip}>
-          {members.map((m) => (
-            <View key={m.id} style={styles.memberChip}>
-              <View style={[styles.memberDot, { backgroundColor: m.status === 'online' ? Colors.theme.success : Colors.theme.warning }]} />
-              <Text style={styles.memberName}>{m.name}</Text>
-            </View>
-          ))}
-        </ScrollView>
-
-        {/* Tab Switcher */}
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
-          >
-            <MessageSquare size={16} color={activeTab === 'chat' ? Colors.theme.accent : Colors.theme.textMuted} />
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>Discussion</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'kanban' && styles.tabActive]}
-            onPress={() => setActiveTab('kanban')}
-          >
-            <LayoutGrid size={16} color={activeTab === 'kanban' ? Colors.theme.accent : Colors.theme.textMuted} />
-            <Text style={[styles.tabText, activeTab === 'kanban' && styles.tabTextActive]}>Kanban</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Content */}
-        {activeTab === 'chat' ? (
-          <View style={styles.chatContainer}>
-            <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chatContent}>
-              {chatMessages.map((msg) => (
-                <View key={msg.id} style={styles.chatBubble}>
-                  <View style={styles.chatBubbleHeader}>
-                    <Text style={styles.chatUser}>{msg.user}</Text>
-                    <Text style={styles.chatTime}>{msg.time}</Text>
-                  </View>
-                  <Text style={styles.chatText}>{msg.text}</Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Chat Actions */}
-            <View style={styles.chatActions}>
-              <TouchableOpacity style={styles.actionIcon}>
-                <Mic size={20} color={Colors.theme.textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionIcon}>
-                <Video size={20} color={Colors.theme.textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionIcon} onPress={() => setShowWhiteboard(true)}>
-                <Pencil size={20} color={Colors.theme.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Chat Input */}
-            <View style={[styles.inputRow, { paddingBottom: bottomOffset }]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Type a message..."
-                placeholderTextColor={Colors.theme.textMuted}
-                value={chatInput}
-                onChangeText={setChatInput}
-              />
-              <TouchableOpacity style={styles.sendBtn}>
-                <Send size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.kanbanContainer, { paddingBottom: bottomOffset + 20 }]}>
-            {/* To Do */}
-            <View style={styles.kanbanColumn}>
-              <View style={[styles.kanbanHeader, { borderBottomColor: Colors.theme.textMuted }]}>
-                <Text style={styles.kanbanTitle}>📋 To Do</Text>
-                <Text style={styles.kanbanCount}>{kanbanData.todo.length}</Text>
-              </View>
-              {kanbanData.todo.map((item) => (
-                <View key={item.id} style={styles.kanbanCard}>
-                  <Text style={styles.kanbanCardTitle}>{item.title}</Text>
-                  <Text style={styles.kanbanCardAssignee}>{item.assignee}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Doing */}
-            <View style={styles.kanbanColumn}>
-              <View style={[styles.kanbanHeader, { borderBottomColor: Colors.theme.accent }]}>
-                <Text style={styles.kanbanTitle}>🔨 Doing</Text>
-                <Text style={styles.kanbanCount}>{kanbanData.doing.length}</Text>
-              </View>
-              {kanbanData.doing.map((item) => (
-                <View key={item.id} style={styles.kanbanCard}>
-                  <Text style={styles.kanbanCardTitle}>{item.title}</Text>
-                  <Text style={styles.kanbanCardAssignee}>{item.assignee}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Done */}
-            <View style={styles.kanbanColumn}>
-              <View style={[styles.kanbanHeader, { borderBottomColor: Colors.theme.success }]}>
-                <Text style={styles.kanbanTitle}>✅ Done</Text>
-                <Text style={styles.kanbanCount}>{kanbanData.done.length}</Text>
-              </View>
-              {kanbanData.done.map((item) => (
-                <View key={item.id} style={[styles.kanbanCard, { borderLeftColor: Colors.theme.success }]}>
-                  <Text style={[styles.kanbanCardTitle, { textDecorationLine: 'line-through', opacity: 0.6 }]}>{item.title}</Text>
-                  <Text style={styles.kanbanCardAssignee}>{item.assignee}</Text>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        )}
-
-        {/* Whiteboard Bottom Sheet */}
-        <Modal visible={showWhiteboard} transparent animationType="slide">
-          <View style={styles.sheetOverlay}>
-            <TouchableOpacity style={styles.sheetBackdrop} onPress={() => setShowWhiteboard(false)} />
-            <View style={styles.sheet}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>📝 Whiteboard</Text>
-                <TouchableOpacity onPress={() => setShowWhiteboard(false)}>
-                  <X size={22} color={Colors.theme.textMuted} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.whiteboardArea}>
-                <Text style={styles.whiteboardPlaceholder}>
-                  Shared canvas — sketch, paste code snippets, or draw diagrams here.{'\n\n'}
-                  All changes sync live with your squad.
-                </Text>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Join Squad Modal */}
-        <Modal visible={showJoin} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Join or Create Squad</Text>
-              <TextInput style={styles.modalInput} placeholder="Enter squad code..." placeholderTextColor={Colors.theme.textMuted} />
-              <TouchableOpacity style={styles.modalBtn}>
-                <Text style={styles.modalBtnText}>Join Squad</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.theme.border }]}>
-                <Text style={[styles.modalBtnText, { color: Colors.theme.accent }]}>Create New Squad</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowJoin(false)} style={{ marginTop: 12 }}>
-                <Text style={{ color: Colors.theme.textMuted, textAlign: 'center' }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <RNAnimated.View
+          style={[styles.screenWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+        >
+          {screen === 'landing' && renderLanding()}
+          {screen === 'create' && renderCreate()}
+          {screen === 'join' && renderJoin()}
+        </RNAnimated.View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -231,96 +433,104 @@ export default function SquadScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 20, paddingBottom: 8 },
-  title: { color: Colors.theme.text, fontSize: 28, fontWeight: '700' },
-  squadName: { color: Colors.theme.textMuted, fontSize: 13, marginTop: 4 },
-  joinBtn: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(59,130,246,0.12)',
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)',
-  },
-  // Members
-  memberStrip: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
-  memberChip: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.theme.cardSolid,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6,
-    borderWidth: 1, borderColor: Colors.theme.border,
-  },
-  memberDot: { width: 8, height: 8, borderRadius: 4 },
-  memberName: { color: Colors.theme.text, fontSize: 13, fontWeight: '500' },
-  // Tabs
-  tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 12, backgroundColor: Colors.theme.cardSolid, borderRadius: 14, padding: 4 },
-  tab: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10, borderRadius: 12, gap: 6 },
-  tabActive: { backgroundColor: 'rgba(59,130,246,0.12)' },
-  tabText: { color: Colors.theme.textMuted, fontSize: 14, fontWeight: '500' },
-  tabTextActive: { color: Colors.theme.accent },
-  // Chat
-  chatContainer: { flex: 1 },
-  chatScroll: { flex: 1, paddingHorizontal: 20 },
-  chatContent: { paddingBottom: 12 },
-  chatBubble: {
-    backgroundColor: Colors.theme.cardSolid, borderRadius: 16, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: Colors.theme.border,
-  },
-  chatBubbleHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  chatUser: { color: Colors.theme.accent, fontSize: 13, fontWeight: '700' },
-  chatTime: { color: Colors.theme.textMuted, fontSize: 11 },
-  chatText: { color: Colors.theme.text, fontSize: 14, lineHeight: 21 },
-  chatActions: {
-    flexDirection: 'row', justifyContent: 'center', gap: 16, paddingVertical: 8,
-    borderTopWidth: 1, borderTopColor: Colors.theme.border,
-  },
-  actionIcon: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)',
+  screenWrap: { flex: 1 },
+
+  // Landing
+  landingContainer: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  heroSection: { alignItems: 'center', marginBottom: 36 },
+  heroIconWrap: { position: 'relative', marginBottom: 18 },
+  heroIconRing: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(59,130,246,0.1)',
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: 'rgba(59,130,246,0.2)',
   },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', padding: 12, paddingHorizontal: 16,
-    backgroundColor: Colors.theme.cardSolid, borderTopWidth: 1, borderTopColor: Colors.theme.border,
+  heroGlow: {
+    position: 'absolute', top: -10, left: -10, right: -10, bottom: -10,
+    borderRadius: 50, backgroundColor: 'rgba(59,130,246,0.06)',
   },
-  input: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 10, color: Colors.theme.text, fontSize: 14,
-    marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  heroTitle: { color: '#FFFFFF', fontSize: 34, fontWeight: '800', letterSpacing: 4, marginBottom: 10 },
+  heroSubtitle: { color: '#64748B', fontSize: 14, textAlign: 'center', lineHeight: 21 },
+
+  cardsContainer: { gap: 12, marginBottom: 28 },
+  actionCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 18, padding: 18, borderWidth: 1,
   },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.theme.accent,
+  createCard: { borderColor: 'rgba(59,130,246,0.15)' },
+  joinCard: { borderColor: 'rgba(16,185,129,0.15)' },
+  cardIconWrap: { marginRight: 14 },
+  cardIconCircle: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  cardContent: { flex: 1 },
+  cardTitle: { color: '#E2E8F0', fontSize: 16, fontWeight: '700', marginBottom: 3 },
+  cardDesc: { color: '#64748B', fontSize: 12, lineHeight: 17 },
+
+  featurePills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  pill: {
+    backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 13, paddingVertical: 6,
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  pillText: { color: '#64748B', fontSize: 11, fontWeight: '500' },
+
+  // Forms
+  formScroll: { flex: 1 },
+  formContent: { paddingHorizontal: 24, paddingTop: 8 },
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginBottom: 20, alignSelf: 'flex-start', paddingVertical: 6,
+  },
+  backText: { color: '#94A3B8', fontSize: 15, fontWeight: '500' },
+  formHeader: { alignItems: 'center', marginBottom: 28 },
+  formIconCircle: {
+    width: 56, height: 56, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
+  },
+  formTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  formSubtitle: { color: '#64748B', fontSize: 13, textAlign: 'center' },
+
+  fieldGroup: { marginBottom: 18 },
+  fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  fieldLabelText: { color: '#94A3B8', fontSize: 13, fontWeight: '600' },
+  requiredDot: {
+    width: 5, height: 5, borderRadius: 3, backgroundColor: '#EF4444',
+  },
+  autoBadge: {
+    backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 8,
+    paddingVertical: 2, borderRadius: 6, marginLeft: 4,
+  },
+  autoBadgeText: { color: '#3B82F6', fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  optionalText: { color: '#4B5563', fontSize: 11, marginLeft: 4 },
+  textField: {
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+    color: '#E2E8F0', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  monoInput: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 1.5, fontSize: 15,
+  },
+  fieldHint: { color: '#4B5563', fontSize: 10, marginTop: 5, fontStyle: 'italic' },
+
+  copyRow: { flexDirection: 'row', gap: 10 },
+  roomIdDisplay: {
+    flex: 1, backgroundColor: 'rgba(59,130,246,0.06)', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 15 : 12,
+    justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.12)',
+  },
+  roomIdText: {
+    color: '#3B82F6', fontSize: 17, fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 2,
+  },
+  copyBtn: {
+    width: 50, borderRadius: 14, backgroundColor: 'rgba(59,130,246,0.1)',
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)',
   },
-  // Kanban
-  kanbanContainer: { paddingHorizontal: 16, paddingBottom: 100, gap: 12 },
-  kanbanColumn: { width: 220, backgroundColor: Colors.theme.cardSolid, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: Colors.theme.border },
-  kanbanHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 2 },
-  kanbanTitle: { color: Colors.theme.text, fontSize: 15, fontWeight: '700' },
-  kanbanCount: { color: Colors.theme.textMuted, fontSize: 12, backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  kanbanCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 12, marginBottom: 8,
-    borderLeftWidth: 3, borderLeftColor: Colors.theme.accent,
+
+  primaryButton: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+    backgroundColor: '#3B82F6', paddingVertical: 16, borderRadius: 16, marginTop: 10,
+    shadowColor: '#3B82F6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
   },
-  kanbanCardTitle: { color: Colors.theme.text, fontSize: 14, fontWeight: '500', marginBottom: 4 },
-  kanbanCardAssignee: { color: Colors.theme.textMuted, fontSize: 12 },
-  // Whiteboard Sheet
-  sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
-  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { backgroundColor: Colors.theme.cardSolid, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, minHeight: SCREEN_HEIGHT * 0.5 },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'center', marginBottom: 16 },
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sheetTitle: { color: Colors.theme.text, fontSize: 20, fontWeight: '700' },
-  whiteboardArea: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 24,
-    minHeight: 200, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.theme.border, borderStyle: 'dashed',
-  },
-  whiteboardPlaceholder: { color: Colors.theme.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  // Join Modal
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
-  modalContent: { backgroundColor: Colors.theme.cardSolid, borderRadius: 24, padding: 28, width: '85%', borderWidth: 1, borderColor: Colors.theme.border },
-  modalTitle: { color: Colors.theme.text, fontSize: 22, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
-  modalInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14,
-    color: Colors.theme.text, fontSize: 16, marginBottom: 16, borderWidth: 1, borderColor: Colors.theme.border,
-  },
-  modalBtn: {
-    backgroundColor: Colors.theme.accent, paddingVertical: 14, borderRadius: 14, alignItems: 'center', marginBottom: 10,
-  },
-  modalBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  joinButton: { backgroundColor: '#10B981', shadowColor: '#10B981' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
 });

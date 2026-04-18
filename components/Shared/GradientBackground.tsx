@@ -15,7 +15,6 @@ export default function GradientBackground({ children, style }: Props) {
       colors={Colors.theme.backgroundGradient}
       style={[styles.container, style]}
     >
-      <AmbientBackground />
       {children}
     </LinearGradient>
   );
