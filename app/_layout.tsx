@@ -45,16 +45,23 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+import { AttendanceProvider } from '@/context/AttendanceContext';
+import { FocusProvider } from '@/context/FocusContext';
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+      <AttendanceProvider>
+        <FocusProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </FocusProvider>
+      </AttendanceProvider>
     </ThemeProvider>
   );
 }

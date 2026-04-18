@@ -13,6 +13,11 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
+// Increase payload limit for base64 images
+app.use(express.json({ limit: '20mb' }));
+
+const GEMINI_API_KEY = "AIzaSyCrgYVnAdFN1ITj7Q-ZARy2D8HxYCXQxls";
+
 // ── In-memory room storage ──
 const rooms = new Map();
 
@@ -322,6 +327,131 @@ io.on('connection', (socket) => {
     socket.leave(currentRoom);
     currentRoom = null;
     currentUser = null;
+  }
+});
+
+// ── OCR Timetable Extraction (Gemini) ──
+app.post('/api/extract-timetable', async (req, res) => {
+  console.log('📬 [OCR] Received extraction request');
+  try {
+    const { base64, mimeType = 'image/jpeg' } = req.body;
+    const geminiKey = GEMINI_API_KEY;
+
+    if (!geminiKey || geminiKey === "YOUR_API_KEY") {
+      console.error('❌ [OCR] GEMINI_API_KEY is not set or is invalid');
+      return res.status(500).json({ error: 'Server misconfiguration: GEMINI_API_KEY missing.' });
+    }
+    if (!base64) {
+      console.error('❌ [OCR] No base64 data received');
+      return res.status(400).json({ error: 'Missing base64 image data.' });
+    }
+
+    console.log(`📸 [OCR] Processing image (${mimeType}, base64 length: ${base64.length})`);
+
+    const prompt = `You are an AI that extracts timetable info.
+Analyze this image and extract all subjects.
+Return ONLY a valid JSON array with this exact structure:
+[
+  {
+    "name": "Full Subject Name",
+    "credits": 3,
+    "lab": false,
+    "attended": 0,
+    "total": 40,
+    "schedule": {
+      "Mon": 1, "Tue": 0, "Wed": 2, "Thu": 1, "Fri": 1, "Sat": 0
+    }
+  }
+]
+Rules:
+• name: full name
+• credits: numeric (default 3)
+• lab: true if it's a lab
+• attended: start at 0
+• total: Semester estimate (~40 for 3-credit, ~26 for lab)
+Only return the array. No markdown.`;
+
+    const models = [
+      'gemini-2.5-flash', 
+      'gemini-2.0-flash',
+      'gemini-2.5-pro',
+      'gemini-3-flash-preview' // Fallback for 2026 early adopters
+    ];
+    let geminiResponseJson = null;
+    let success = false;
+    let lastError = '';
+
+    for (const model of models) {
+      try {
+        console.log(`🤖 [OCR] Attempting with model: ${model}`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: base64 } },
+              ],
+            }],
+            generationConfig: { 
+              temperature: 0.1, 
+              responseMimeType: "application/json"
+            },
+          }),
+        });
+
+        geminiResponseJson = await response.json();
+        console.log(`📡 [OCR] ${model} response status: ${response.status}`);
+        
+        if (response.ok) {
+          console.log(`✅ [OCR] ${model} success`);
+          success = true;
+          break;
+        } else {
+          lastError = geminiResponseJson.error?.message || 'Unknown error';
+          console.warn(`⚠️ [OCR] ${model} failed: ${lastError}`);
+        }
+      } catch (err) {
+        lastError = err.message;
+        console.warn(`⚠️ [OCR] Network/Fetch error for ${model}: ${lastError}`);
+      }
+    }
+
+    if (!success) {
+      console.error('❌ [OCR] All models failed. Last error:', lastError);
+      return res.status(502).json({ error: `Gemini extraction failed: ${lastError}` });
+    }
+
+    const candidate = geminiResponseJson.candidates?.[0];
+    let rawText = candidate?.content?.parts?.[0]?.text ?? '';
+    if (!rawText) {
+      console.error('❌ [OCR] Gemini returned empty text');
+      return res.status(500).json({ error: 'Empty AI response from Gemini.' });
+    }
+
+    console.log('📝 [OCR] Raw AI output received. Parsing...');
+
+    // Clean markdown if present
+    let cleanedText = rawText.trim();
+    if (cleanedText.includes('```')) {
+      const match = cleanedText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (match) cleanedText = match[1].trim();
+    }
+
+    try {
+      let parsedData = JSON.parse(cleanedText);
+      console.log(`✨ [OCR] Successfully extracted ${parsedData.length} subjects`);
+      return res.json({ status: 'success', subjects: parsedData });
+    } catch (parseErr) {
+      console.error('❌ [OCR] JSON Parse Error:', parseErr.message);
+      return res.status(500).json({ error: 'AI returned invalid data format.', raw: cleanedText.substring(0, 100) });
+    }
+
+  } catch (error) {
+    console.error("❌ [OCR] Internal Server Error:", error.message);
+    return res.status(500).json({ error: 'Failed to process image.' });
   }
 });
 

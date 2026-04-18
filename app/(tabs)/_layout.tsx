@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, BarChart2, Brain, Users, Focus } from 'lucide-react-native';
+import { Home, BarChart2, Brain, Users, Focus, Activity } from 'lucide-react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -50,8 +50,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Analytics',
-          tabBarIcon: ({ color }) => <BarChart2 size={24} color={color} />,
+          title: 'Focus',
+          tabBarIcon: ({ color }) => <Activity size={24} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -69,9 +69,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="context"
+        name="attendance"
         options={{
-          title: 'Context',
+          title: 'Attendance',
           tabBarIcon: ({ color }) => <Focus size={24} color={color} />,
         }}
       />
