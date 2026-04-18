@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Animated } from 'react-native';
 import { TrendingUp, Brain, Target } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
+import { useTheme } from '@/context/ThemeContext';
 
 const insights = [
   { icon: TrendingUp, text: '📈 Productivity up 12% from last week', color: Colors.theme.success },
@@ -10,6 +11,7 @@ const insights = [
 ];
 
 export default function DailyInsightBar() {
+  const { colors, isDark } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -37,7 +39,7 @@ export default function DailyInsightBar() {
   const current = insights[currentIndex];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
       <View style={[styles.accentLine, { backgroundColor: current.color }]} />
       <Animated.View
         style={[
@@ -45,13 +47,17 @@ export default function DailyInsightBar() {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
-        <Text style={styles.text}>{current.text}</Text>
+        <Text style={[styles.text, { color: colors.text }]}>{current.text}</Text>
       </Animated.View>
       <View style={styles.dots}>
         {insights.map((_, i) => (
           <View
             key={i}
-            style={[styles.dot, i === currentIndex && { backgroundColor: Colors.theme.accent }]}
+            style={[
+              styles.dot, 
+              i === currentIndex && { backgroundColor: colors.accent },
+              !isDark && { backgroundColor: i === currentIndex ? colors.accent : 'rgba(0,0,0,0.1)' }
+            ]}
           />
         ))}
       </View>
@@ -61,14 +67,12 @@ export default function DailyInsightBar() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.theme.cardSolid,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: Colors.theme.border,
     overflow: 'hidden',
   },
   accentLine: {
@@ -81,7 +85,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   text: {
-    color: Colors.theme.text,
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,

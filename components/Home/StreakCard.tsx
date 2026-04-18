@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Animated } from 'react-native';
 import { Flame } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function StreakCard() {
+  const { colors, isDark } = useTheme();
   const flameAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -20,15 +22,15 @@ export default function StreakCard() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>🔥 Streak</Text>
-      <View style={styles.card}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>🔥 Streak</Text>
+      <View style={[styles.card, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
         <View style={styles.topRow}>
           <Animated.View style={[styles.flameCircle, { transform: [{ scale: flameAnim }] }]}>
             <Flame size={28} color="#FF6B2B" />
           </Animated.View>
           <View style={styles.streakInfo}>
             <Text style={styles.streakCount}>{streakDays} days</Text>
-            <Text style={styles.streakSub}>All tasks completed daily</Text>
+            <Text style={[styles.streakSub, { color: colors.textMuted }]}>All tasks completed daily</Text>
           </View>
         </View>
 
@@ -38,14 +40,16 @@ export default function StreakCard() {
             <View key={i} style={styles.dayCol}>
               <View style={[
                 styles.dayDot,
-                weekData[i] ? styles.dayDotDone : styles.dayDotMissed,
+                weekData[i] 
+                  ? styles.dayDotDone 
+                  : [styles.dayDotMissed, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }],
               ]} />
-              <Text style={styles.dayLabel}>{day}</Text>
+              <Text style={[styles.dayLabel, { color: colors.textMuted }]}>{day}</Text>
             </View>
           ))}
         </View>
 
-        <Text style={styles.motivationText}>
+        <Text style={[styles.motivationText, { color: colors.textMuted }]}>
           Keep going! You're on your longest streak yet. 💪
         </Text>
       </View>
@@ -58,17 +62,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    color: Colors.theme.text,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
   },
   card: {
-    backgroundColor: Colors.theme.cardSolid,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: Colors.theme.border,
   },
   topRow: {
     flexDirection: 'row',
@@ -93,7 +94,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   streakSub: {
-    color: Colors.theme.textMuted,
     fontSize: 13,
     marginTop: 2,
   },
@@ -117,17 +117,13 @@ const styles = StyleSheet.create({
     borderColor: '#FF6B2B',
   },
   dayDotMissed: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   dayLabel: {
-    color: Colors.theme.textMuted,
     fontSize: 11,
     fontWeight: '500',
   },
   motivationText: {
-    color: Colors.theme.textMuted,
     fontSize: 13,
     textAlign: 'center',
     fontStyle: 'italic',

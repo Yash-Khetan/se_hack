@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import Colors from '@/constants/Colors';
 import TouchableScale from '@/components/Shared/TouchableScale';
+import { useTheme } from '@/context/ThemeContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -18,14 +19,15 @@ const dummyDates = [
 ];
 
 export default function HeatmapStrip() {
+  const { colors, isDark } = useTheme();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const getDotColor = (status: string) => {
     switch (status) {
-      case 'safe': return Colors.theme.success;
-      case 'warning': return Colors.theme.warning;
-      case 'critical': return Colors.theme.danger;
-      default: return Colors.theme.textMuted;
+      case 'safe': return colors.success;
+      case 'warning': return colors.warning;
+      case 'critical': return colors.danger;
+      default: return colors.textMuted;
     }
   };
 
@@ -38,19 +40,23 @@ export default function HeatmapStrip() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>This Week</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>This Week</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {dummyDates.map((item, index) => {
           const isSelected = selectedIndex === index;
           return (
             <TouchableScale
               key={index}
-              style={[styles.dateCard, isSelected && styles.dateCardSelected]}
+              style={[
+                styles.dateCard, 
+                { backgroundColor: colors.cardSolid, borderColor: colors.border },
+                isSelected && { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)' }
+              ]}
               scaleValue={0.9}
               onPress={() => handleDatePress(index)}
             >
-              <Text style={styles.dayText}>{item.day}</Text>
-              <Text style={[styles.dateText, isSelected && { color: Colors.theme.accent }]}>{item.date}</Text>
+              <Text style={[styles.dayText, { color: colors.textMuted }]}>{item.day}</Text>
+              <Text style={[styles.dateText, { color: isSelected ? colors.accent : colors.text }]}>{item.date}</Text>
               <View style={[styles.dot, { backgroundColor: getDotColor(item.status) }]} />
             </TouchableScale>
           );
@@ -59,17 +65,17 @@ export default function HeatmapStrip() {
 
       {/* Expandable Detail Panel */}
       {selectedDate && (
-        <View style={styles.detailPanel}>
+        <View style={[styles.detailPanel, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📚 Classes</Text>
-            <Text style={styles.detailValue}>
+            <Text style={[styles.detailLabel, { color: colors.textMuted }]}>📚 Classes</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>
               {selectedDate.classes.length > 0 ? selectedDate.classes.join(', ') : 'No classes'}
             </Text>
           </View>
           {selectedDate.deadlines.length > 0 && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>⚠️ Deadlines</Text>
-              <Text style={[styles.detailValue, { color: Colors.theme.warning }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>⚠️ Deadlines</Text>
+              <Text style={[styles.detailValue, { color: colors.warning }]}>
                 {selectedDate.deadlines.join(', ')}
               </Text>
             </View>
@@ -85,7 +91,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    color: Colors.theme.text,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
@@ -96,25 +101,17 @@ const styles = StyleSheet.create({
   dateCard: {
     width: 56,
     height: 78,
-    backgroundColor: Colors.theme.cardSolid,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.theme.border,
-  },
-  dateCardSelected: {
-    borderColor: Colors.theme.accent,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   dayText: {
-    color: Colors.theme.textMuted,
     fontSize: 11,
     fontWeight: '500',
     marginBottom: 4,
   },
   dateText: {
-    color: Colors.theme.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
@@ -126,23 +123,19 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     marginTop: 12,
-    backgroundColor: Colors.theme.cardSolid,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.theme.border,
   },
   detailRow: {
     marginBottom: 8,
   },
   detailLabel: {
-    color: Colors.theme.textMuted,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
   },
   detailValue: {
-    color: Colors.theme.text,
     fontSize: 14,
     fontWeight: '500',
   },

@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { User } from 'lucide-react-native';
-import Colors from '@/constants/Colors';
 import TouchableScale from '@/components/Shared/TouchableScale';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Props {
   title: string;
@@ -11,14 +11,16 @@ interface Props {
 }
 
 export default function Header({ title, subtitle, onProfilePress }: Props) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       <View>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       </View>
-      <TouchableScale onPress={onProfilePress} style={styles.profileButton}>
-        <User size={24} color={Colors.theme.accent} />
+      <TouchableScale onPress={onProfilePress} style={[styles.profileButton, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
+        <User size={24} color={colors.accent} />
       </TouchableScale>
     </View>
   );
@@ -33,24 +35,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  title: {
-    color: Colors.theme.text,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    color: Colors.theme.textMuted,
-    fontSize: 14,
-    marginBottom: 4,
-  },
+  title: { fontSize: 24, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, marginBottom: 4 },
   profileButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.theme.cardSolid,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.theme.border,
   },
 });

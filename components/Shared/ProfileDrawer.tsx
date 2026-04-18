@@ -10,42 +10,12 @@ import {
 } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import { BlurView } from 'expo-blur';
+import { useTheme } from '@/context/ThemeContext';
+import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-
-interface Profile {
-  name: string;
-  email: string;
-  dateOfBirth: string;
-  course: string;
-  college: string;
-  year: string;
-}
-
-interface AppSettings {
-  darkMode: boolean;
-  notifications: boolean;
-}
-
-const DEFAULT_PROFILE: Profile = {
-  name: 'Miti',
-  email: 'miti@student.edu',
-  dateOfBirth: '2004-01-15',
-  course: 'B.Tech CSE',
-  college: 'MIT',
-  year: '3rd Year',
-};
-
-const DEFAULT_SETTINGS: AppSettings = {
-  darkMode: true,
-  notifications: true,
-};
-
-// Simple storage shim using a module-level variable for session persistence
-// (replace with AsyncStorage if dependency is available)
-let _storedProfile: Profile = DEFAULT_PROFILE;
-let _storedSettings: AppSettings = DEFAULT_SETTINGS;
+import { useUser, Profile, AppSettings } from '@/context/UserContext';
 
 interface Props {
   visible: boolean;
@@ -55,11 +25,12 @@ interface Props {
 type DrawerView = 'main' | 'settings' | 'edit-profile';
 
 export default function ProfileDrawer({ visible, onClose }: Props) {
+  const router = useRouter();
+  const { isDark, toggleTheme } = useTheme();
+  const { profile, setProfile, settings, setSettings } = useUser();
   const [slideAnim] = useState(new Animated.Value(width));
   const [view, setView] = useState<DrawerView>('main');
-  const [profile, setProfile] = useState<Profile>(_storedProfile);
-  const [settings, setSettings] = useState<AppSettings>(_storedSettings);
-  const [editingProfile, setEditingProfile] = useState<Profile>({ ..._storedProfile });
+  const [editingProfile, setEditingProfile] = useState<Profile>(profile);
 
   useEffect(() => {
     if (visible) {
@@ -89,14 +60,12 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
       return;
     }
     setProfile(editingProfile);
-    _storedProfile = editingProfile;
     setView('settings');
   };
 
   const handleSettingToggle = (key: keyof AppSettings) => {
     const updated = { ...settings, [key]: !settings[key] };
     setSettings(updated);
-    _storedSettings = updated;
   };
 
   const getInitials = (name: string) =>
@@ -142,7 +111,13 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
           <ChevronRight size={16} color={Colors.theme.textMuted} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem} 
+          onPress={() => {
+            handleClose();
+            router.push('/expenses');
+          }}
+        >
           <View style={styles.menuIconBox}>
             <CreditCard size={18} color={Colors.theme.accent} />
           </View>
@@ -202,19 +177,22 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
         <View style={styles.settingsCard}>
           <View style={styles.settingRow}>
             <View style={styles.settingIconBox}>
-              {settings.darkMode
+              {isDark
                 ? <Moon size={16} color={Colors.theme.accent} />
                 : <Sun size={16} color={Colors.theme.warning} />}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.settingLabel}>Dark Mode</Text>
-              <Text style={styles.settingDesc}>{settings.darkMode ? 'Currently Dark' : 'Currently Light'}</Text>
+              <Text style={styles.settingDesc}>{isDark ? 'Currently Dark' : 'Currently Light'}</Text>
             </View>
             <Switch
-              value={settings.darkMode}
-              onValueChange={() => handleSettingToggle('darkMode')}
+              value={isDark}
+              onValueChange={() => {
+                toggleTheme();
+                handleSettingToggle('darkMode');
+              }}
               trackColor={{ false: 'rgba(255,255,255,0.15)', true: 'rgba(59,130,246,0.5)' }}
-              thumbColor={settings.darkMode ? Colors.theme.accent : '#f4f3f4'}
+              thumbColor={isDark ? Colors.theme.accent : '#f4f3f4'}
             />
           </View>
         </View>
@@ -318,9 +296,21 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
           tint="dark"
           style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}
         >
-          {view === 'main' && renderMain()}
-          {view === 'settings' && renderSettings()}
-          {view === 'edit-profile' && renderEditProfile()}
+          {view === 'main' && (
+            <View style={styles.panelContainer}>
+              {renderMain()}
+            </View>
+          )}
+          {view === 'settings' && (
+            <View style={styles.panelContainer}>
+              {renderSettings()}
+            </View>
+          )}
+          {view === 'edit-profile' && (
+            <View style={styles.panelContainer}>
+              {renderEditProfile()}
+            </View>
+          )}
         </AnimatedBlurView>
       </View>
     </Modal>
@@ -330,6 +320,7 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  panelContainer: { flex: 1, display: 'flex', flexDirection: 'column' },
   drawer: {
     width: width * 0.82,
     backgroundColor: 'rgba(9, 14, 28, 0.97)',
@@ -365,7 +356,7 @@ const styles = StyleSheet.create({
   menuIconBox: { width: 38, height: 38, borderRadius: 11, backgroundColor: Colors.theme.cardSolid, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   menuLabel: { color: Colors.theme.text, fontSize: 15, fontWeight: '500' },
   // Logout
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 14, marginTop: 'auto', borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 14, marginTop: 16, borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
   logoutText: { color: Colors.theme.danger, fontSize: 15, fontWeight: '700', marginLeft: 10 },
   // Settings
   sectionLabel: { color: Colors.theme.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8, marginTop: 18 },

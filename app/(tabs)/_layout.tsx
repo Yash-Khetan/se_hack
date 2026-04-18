@@ -2,26 +2,20 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, BarChart2, Brain, Users, Focus, Activity } from 'lucide-react-native';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
 import { BlurView } from 'expo-blur';
 import { StyleSheet } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  
-  // We force dark mode palette as per requirements
-  const activeColor = Colors.theme.accent;
-  const inactiveColor = Colors.theme.textMuted;
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: inactiveColor,
-        headerShown: useClientOnlyValue(false, false), // Custom headers per screen
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
+        headerShown: useClientOnlyValue(false, false),
         tabBarStyle: {
           position: 'absolute',
           backgroundColor: 'transparent',
@@ -32,13 +26,13 @@ export default function TabLayout() {
           paddingTop: 8,
         },
         tabBarBackground: () => (
-          <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
+          <BlurView tint={isDark ? 'dark' : 'light'} intensity={80} style={StyleSheet.absoluteFill} />
         ),
         tabBarShowLabel: true,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '500',
-        }
+        },
       }}>
       <Tabs.Screen
         name="index"

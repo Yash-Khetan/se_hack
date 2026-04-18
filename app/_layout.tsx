@@ -47,21 +47,33 @@ export default function RootLayout() {
 
 import { AttendanceProvider } from '@/context/AttendanceContext';
 import { FocusProvider } from '@/context/FocusContext';
+import { StressProvider } from '@/context/StressContext';
+import { ThemeProvider as LuminaThemeProvider } from '@/context/ThemeContext';
+import { UserProvider } from '@/context/UserContext';
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AttendanceProvider>
-        <FocusProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </Stack>
-        </FocusProvider>
-      </AttendanceProvider>
+      <LuminaThemeProvider>
+        <AttendanceProvider>
+          <FocusProvider>
+            <StressProvider>
+              <UserProvider>
+                <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
+                  <Stack.Screen name="expenses" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="stress-heatmap" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                </Stack>
+              </UserProvider>
+            </StressProvider>
+          </FocusProvider>
+        </AttendanceProvider>
+      </LuminaThemeProvider>
     </ThemeProvider>
   );
 }
+

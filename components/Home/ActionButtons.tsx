@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { QrCode, Plus, Brain, Users } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import TouchableScale from '@/components/Shared/TouchableScale';
+import { useTheme } from '@/context/ThemeContext';
 
 const actions = [
   { id: 'scan', icon: QrCode, label: 'Scan' },
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export default function ActionButtons({ onActionPress }: Props) {
+  const { colors } = useTheme();
+  
   return (
     <View style={styles.container}>
       {actions.map((action) => {
@@ -26,10 +29,10 @@ export default function ActionButtons({ onActionPress }: Props) {
             style={styles.actionItem}
             onPress={() => onActionPress?.(action.id)}
           >
-            <View style={styles.iconButton}>
-              <Icon size={24} color={Colors.theme.accent} />
+            <View style={[styles.iconButton, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
+              <Icon size={24} color={colors.accent} />
             </View>
-            <Text style={styles.label}>{action.label}</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{action.label}</Text>
           </TouchableScale>
         );
       })}
@@ -50,15 +53,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: Colors.theme.cardSolid,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: Colors.theme.border,
   },
   label: {
-    color: Colors.theme.text,
     fontSize: 12,
     fontWeight: '500',
   },
