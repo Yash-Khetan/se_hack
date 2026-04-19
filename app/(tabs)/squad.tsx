@@ -12,6 +12,8 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import GradientBackground from '@/components/Shared/GradientBackground';
 
+import { useTheme } from '@/context/ThemeContext';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 function generateRoomId(): string {
@@ -39,6 +41,7 @@ type ScreenState = 'landing' | 'create' | 'join';
 export default function SquadScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
   const [screen, setScreen] = useState<ScreenState>('landing');
 
   // Create Room state
@@ -147,8 +150,8 @@ export default function SquadScreen() {
           </View>
           <View style={styles.heroGlow} />
         </View>
-        <Text style={styles.heroTitle}>SQUADS</Text>
-        <Text style={styles.heroSubtitle}>
+        <Text style={[styles.heroTitle, { color: colors.text }]}>SQUADS</Text>
+        <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>
           Real-time collaboration hub{'\n'}Chat, draw, and react together.
         </Text>
       </View>
@@ -165,8 +168,8 @@ export default function SquadScreen() {
             </View>
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Create Room</Text>
-            <Text style={styles.cardDesc}>Start a new room and share the code</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Create Room</Text>
+            <Text style={[styles.cardDesc, { color: colors.textMuted }]}>Start a new room and share the code</Text>
           </View>
           <Sparkles size={18} color="rgba(59,130,246,0.6)" />
         </TouchableOpacity>
@@ -182,8 +185,8 @@ export default function SquadScreen() {
             </View>
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Join Room</Text>
-            <Text style={styles.cardDesc}>Enter a room code to join a session</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Join Room</Text>
+            <Text style={[styles.cardDesc, { color: colors.textMuted }]}>Enter a room code to join a session</Text>
           </View>
           <Zap size={18} color="rgba(16,185,129,0.6)" />
         </TouchableOpacity>
@@ -191,8 +194,8 @@ export default function SquadScreen() {
 
       <View style={styles.featurePills}>
         {['Socket.IO', 'Live Chat', 'Whiteboard', 'Emojis'].map((f, i) => (
-          <View key={i} style={styles.pill}>
-            <Text style={styles.pillText}>{f}</Text>
+          <View key={i} style={[styles.pill, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.textMuted }]}>{f}</Text>
           </View>
         ))}
       </View>
@@ -208,49 +211,49 @@ export default function SquadScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <TouchableOpacity style={styles.backBtn} onPress={() => navigateTo('landing')}>
-        <ArrowLeft size={20} color="#94A3B8" />
-        <Text style={styles.backText}>Back</Text>
+        <ArrowLeft size={20} color={colors.textMuted} />
+        <Text style={[styles.backText, { color: colors.textMuted }]}>Back</Text>
       </TouchableOpacity>
 
       <View style={styles.formHeader}>
         <View style={[styles.formIconCircle, { backgroundColor: 'rgba(59,130,246,0.12)' }]}>
           <Plus size={22} color="#3B82F6" />
         </View>
-        <Text style={styles.formTitle}>Create Room</Text>
-        <Text style={styles.formSubtitle}>Set up a new collaborative room</Text>
+        <Text style={[styles.formTitle, { color: colors.text }]}>Create Room</Text>
+        <Text style={[styles.formSubtitle, { color: colors.textMuted }]}>Set up a new collaborative room</Text>
       </View>
 
       {/* Server IP */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Wifi size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Server IP</Text>
+          <Wifi size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Server IP</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={[styles.textField, styles.monoInput]}
+          style={[styles.textField, styles.monoInput, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="192.168.x.x"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={serverUrl}
           onChangeText={setServerUrl}
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           returnKeyType="next"
         />
-        <Text style={styles.fieldHint}>Run `node server/index.js` to see your IP</Text>
+        <Text style={[styles.fieldHint, { color: colors.textMuted }]}>Run `node server/index.js` to see your IP</Text>
       </View>
 
       {/* Your Name */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <User size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Your Name</Text>
+          <User size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Your Name</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={styles.textField}
+          style={[styles.textField, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="e.g. Aarav Shah"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={createName}
           onChangeText={setCreateName}
           returnKeyType="next"
@@ -260,14 +263,14 @@ export default function SquadScreen() {
       {/* Room Name */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Hash size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Room Name</Text>
+          <Hash size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Room Name</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={styles.textField}
+          style={[styles.textField, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="e.g. Design Sprint Review"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={roomName}
           onChangeText={setRoomName}
           returnKeyType="next"
@@ -277,18 +280,18 @@ export default function SquadScreen() {
       {/* Room ID */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Shield size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Room ID</Text>
+          <Shield size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Room ID</Text>
           <View style={styles.autoBadge}>
             <Text style={styles.autoBadgeText}>Auto-generated</Text>
           </View>
         </View>
         <View style={styles.copyRow}>
-          <View style={styles.roomIdDisplay}>
+          <View style={[styles.roomIdDisplay, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
             <Text style={styles.roomIdText}>{roomId}</Text>
           </View>
           <TouchableOpacity style={styles.copyBtn} onPress={copyRoomId} activeOpacity={0.7}>
-            <Copy size={16} color="#3B82F6" />
+            <Copy size={16} color={colors.accent} />
           </TouchableOpacity>
         </View>
       </View>
@@ -296,14 +299,14 @@ export default function SquadScreen() {
       {/* Password */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Lock size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Room Password</Text>
-          <Text style={styles.optionalText}>(Optional)</Text>
+          <Lock size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Room Password</Text>
+          <Text style={[styles.optionalText, { color: colors.textMuted }]}>(Optional)</Text>
         </View>
         <TextInput
-          style={styles.textField}
+          style={[styles.textField, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="Set a password for security"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           secureTextEntry
           value={roomPassword}
           onChangeText={setRoomPassword}
@@ -326,29 +329,29 @@ export default function SquadScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <TouchableOpacity style={styles.backBtn} onPress={() => navigateTo('landing')}>
-        <ArrowLeft size={20} color="#94A3B8" />
-        <Text style={styles.backText}>Back</Text>
+        <ArrowLeft size={20} color={colors.textMuted} />
+        <Text style={[styles.backText, { color: colors.textMuted }]}>Back</Text>
       </TouchableOpacity>
 
       <View style={styles.formHeader}>
         <View style={[styles.formIconCircle, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
           <LogIn size={22} color="#10B981" />
         </View>
-        <Text style={styles.formTitle}>Join Room</Text>
-        <Text style={styles.formSubtitle}>Enter the room details to connect</Text>
+        <Text style={[styles.formTitle, { color: colors.text }]}>Join Room</Text>
+        <Text style={[styles.formSubtitle, { color: colors.textMuted }]}>Enter the room details to connect</Text>
       </View>
 
       {/* Server IP */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Wifi size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Server IP</Text>
+          <Wifi size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Server IP</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={[styles.textField, styles.monoInput]}
+          style={[styles.textField, styles.monoInput, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="192.168.x.x"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={joinServerUrl}
           onChangeText={setJoinServerUrl}
           keyboardType="numbers-and-punctuation"
@@ -360,14 +363,14 @@ export default function SquadScreen() {
       {/* Your Name */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <User size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Your Name</Text>
+          <User size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Your Name</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={styles.textField}
+          style={[styles.textField, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="Enter your display name"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={joinName}
           onChangeText={setJoinName}
           returnKeyType="next"
@@ -377,14 +380,14 @@ export default function SquadScreen() {
       {/* Room ID */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Shield size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Room ID</Text>
+          <Shield size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Room ID</Text>
           <View style={styles.requiredDot} />
         </View>
         <TextInput
-          style={[styles.textField, styles.monoInput]}
+          style={[styles.textField, styles.monoInput, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="XXX-XXX-XXX"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           value={joinRoomId}
           onChangeText={setJoinRoomId}
           autoCapitalize="characters"
@@ -395,14 +398,14 @@ export default function SquadScreen() {
       {/* Password */}
       <View style={styles.fieldGroup}>
         <View style={styles.fieldLabel}>
-          <Lock size={14} color="#64748B" />
-          <Text style={styles.fieldLabelText}>Room Password</Text>
-          <Text style={styles.optionalText}>(If set)</Text>
+          <Lock size={14} color={colors.textMuted} />
+          <Text style={[styles.fieldLabelText, { color: colors.textMuted }]}>Room Password</Text>
+          <Text style={[styles.optionalText, { color: colors.textMuted }]}>(If set)</Text>
         </View>
         <TextInput
-          style={styles.textField}
+          style={[styles.textField, { color: colors.text, backgroundColor: colors.cardSolid, borderColor: colors.border }]}
           placeholder="Enter room password"
-          placeholderTextColor="#4B5563"
+          placeholderTextColor={colors.textMuted}
           secureTextEntry
           value={joinPassword}
           onChangeText={setJoinPassword}
@@ -449,8 +452,8 @@ const styles = StyleSheet.create({
     position: 'absolute', top: -10, left: -10, right: -10, bottom: -10,
     borderRadius: 50, backgroundColor: 'rgba(59,130,246,0.06)',
   },
-  heroTitle: { color: '#FFFFFF', fontSize: 34, fontWeight: '800', letterSpacing: 4, marginBottom: 10 },
-  heroSubtitle: { color: '#64748B', fontSize: 14, textAlign: 'center', lineHeight: 21 },
+  heroTitle: { fontSize: 34, fontWeight: '800', letterSpacing: 4, marginBottom: 10 },
+  heroSubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 21 },
 
   cardsContainer: { gap: 12, marginBottom: 28 },
   actionCard: {
@@ -462,15 +465,15 @@ const styles = StyleSheet.create({
   cardIconWrap: { marginRight: 14 },
   cardIconCircle: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   cardContent: { flex: 1 },
-  cardTitle: { color: '#E2E8F0', fontSize: 16, fontWeight: '700', marginBottom: 3 },
-  cardDesc: { color: '#64748B', fontSize: 12, lineHeight: 17 },
+  cardTitle: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
+  cardDesc: { fontSize: 12, lineHeight: 17 },
 
   featurePills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   pill: {
-    backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 13, paddingVertical: 6,
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 13, paddingVertical: 6,
+    borderRadius: 12, borderWidth: 1, 
   },
-  pillText: { color: '#64748B', fontSize: 11, fontWeight: '500' },
+  pillText: { fontSize: 11, fontWeight: '500' },
 
   // Forms
   formScroll: { flex: 1 },
@@ -485,8 +488,8 @@ const styles = StyleSheet.create({
     width: 56, height: 56, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center', marginBottom: 14,
   },
-  formTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: '700', marginBottom: 6 },
-  formSubtitle: { color: '#64748B', fontSize: 13, textAlign: 'center' },
+  formTitle: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  formSubtitle: { fontSize: 13, textAlign: 'center' },
 
   fieldGroup: { marginBottom: 18 },
   fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
@@ -501,9 +504,9 @@ const styles = StyleSheet.create({
   autoBadgeText: { color: '#3B82F6', fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   optionalText: { color: '#4B5563', fontSize: 11, marginLeft: 4 },
   textField: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14,
+    borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: Platform.OS === 'ios' ? 15 : 12,
-    color: '#E2E8F0', fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    fontSize: 15, borderWidth: 1, 
   },
   monoInput: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 1.5, fontSize: 15,

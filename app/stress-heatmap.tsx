@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Calendar, Mail, TrendingUp, MessageSquare,
-  Zap, BookOpen, FileText, RefreshCw, Link, X,
+  Zap, BookOpen, FileText, RefreshCw, Link, X, AlertCircle, CheckCircle, Layers, Info, PartyPopper,
 } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useStress, DayStress, StressEvent } from '@/context/StressContext';
@@ -21,14 +21,13 @@ type TabId = 'heatmap' | 'timeline' | 'gmail' | 'insights';
 const TAB_CONFIG: { id: TabId; label: string; icon: any }[] = [
   { id: 'heatmap', label: 'Heatmap', icon: Calendar },
   { id: 'timeline', label: 'Timeline', icon: TrendingUp },
-  { id: 'gmail', label: 'Gmail', icon: Mail },
   { id: 'insights', label: 'Insights', icon: MessageSquare },
 ];
 
 const LEVEL_GRADIENTS: Record<string, readonly [string, string]> = {
-  low:    ['#059669', '#10B981'],
+  low: ['#059669', '#10B981'],
   medium: ['#D97706', '#F59E0B'],
-  high:   ['#B91C1C', '#EF4444'],
+  high: ['#B91C1C', '#EF4444'],
 };
 
 const EVENT_ICONS: Record<string, any> = { exam: Zap, assignment: FileText, class: BookOpen, event: Calendar };
@@ -159,47 +158,15 @@ export default function StressHeatmapScreen() {
     );
   };
 
-  // ── Gmail Signals ───────────────────────────────────────────────────────────
-  const renderGmail = () => (
-    <Animated.View entering={FadeInDown} style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionTitle, { color: textCol, marginBottom: 0 }]}>Academic Email Signals</Text>
-        {!isConnected && (
-          <TouchableOpacity style={[styles.connectBadge, { borderColor: colors.accent }]} onPress={connectGoogle}>
-            <Link size={12} color={colors.accent} />
-            <Text style={[styles.connectBadgeText, { color: colors.accent }]}>Connect Gmail</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      {!isConnected && (
-        <View style={[styles.mockBanner, { backgroundColor: colors.accent + '15', borderColor: colors.accent + '40' }]}>
-          <Text style={[styles.mockBannerText, { color: colors.accent }]}>
-            Showing demo data. Connect Google to see real emails.
-          </Text>
-        </View>
-      )}
-      {gmailSignals.map((sig, i) => (
-        <Animated.View key={i} entering={FadeInDown.delay(i * 60)} layout={Layout.springify()}
-          style={[styles.gmailCard, { backgroundColor: card, borderColor: border }]}>
-          <View style={styles.gmailTop}>
-            <Text style={[styles.gmailSubject, { color: textCol }]} numberOfLines={2}>{sig.subject}</Text>
-            <View style={[styles.tag, { backgroundColor: sig.tagColor + '22', borderColor: sig.tagColor + '55' }]}>
-              <Text style={[styles.tagText, { color: sig.tagColor }]}>{sig.tag}</Text>
-            </View>
-          </View>
-          <Text style={[styles.gmailMeta, { color: mutedCol }]}>From: {sig.from} · {sig.date}</Text>
-        </Animated.View>
-      ))}
-    </Animated.View>
-  );
+  // ── Gmail Signals (Removed) ────────────────────────────────────────────────
 
   // ── Insights ────────────────────────────────────────────────────────────────
   const renderInsights = () => {
     const insightColors: Record<string, { bg: string; border: string; text: string }> = {
-      danger:  { bg: '#EF444415', border: '#EF444445', text: '#EF4444' },
+      danger: { bg: '#EF444415', border: '#EF444445', text: '#EF4444' },
       warning: { bg: '#F59E0B15', border: '#F59E0B45', text: '#F59E0B' },
-      good:    { bg: '#10B98115', border: '#10B98145', text: '#10B981' },
-      info:    { bg: '#3B82F615', border: '#3B82F645', text: '#3B82F6' },
+      good: { bg: '#10B98115', border: '#10B98145', text: '#10B981' },
+      info: { bg: '#3B82F615', border: '#3B82F645', text: '#3B82F6' },
     };
 
     return (
@@ -207,10 +174,19 @@ export default function StressHeatmapScreen() {
         <Text style={[styles.sectionTitle, { color: textCol }]}>Emotional Intelligence Insights</Text>
         {insights.map((ins, i) => {
           const ic = insightColors[ins.level] || insightColors.info;
+          let InsightIcon = Info;
+          if (ins.icon === 'alert-circle') InsightIcon = AlertCircle;
+          else if (ins.icon === 'zap') InsightIcon = Zap;
+          else if (ins.icon === 'check-circle') InsightIcon = CheckCircle;
+          else if (ins.icon === 'trending-up') InsightIcon = TrendingUp;
+          else if (ins.icon === 'layers') InsightIcon = Layers;
+
           return (
             <Animated.View key={i} entering={FadeInDown.delay(i * 80)}
               style={[styles.insightCard, { backgroundColor: ic.bg, borderColor: ic.border }]}>
-              <Text style={styles.insightEmoji}>{ins.icon}</Text>
+              <View style={styles.insightIconWrapper}>
+                <InsightIcon size={20} color={ic.text} />
+              </View>
               <Text style={[styles.insightMessage, { color: ic.text }]}>{ins.message}</Text>
             </Animated.View>
           );
@@ -245,7 +221,7 @@ export default function StressHeatmapScreen() {
 
             {selectedDay.events.length === 0 ? (
               <View style={styles.emptyDay}>
-                <Text style={{ fontSize: 32 }}>🎉</Text>
+                <PartyPopper size={48} color={selectedDay.color} style={{ marginBottom: 16 }} />
                 <Text style={[styles.emptyDayText, { color: mutedCol }]}>No academic events — free day!</Text>
               </View>
             ) : (
@@ -330,7 +306,6 @@ export default function StressHeatmapScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {activeTab === 'heatmap' && renderHeatmapGrid()}
         {activeTab === 'timeline' && renderTimeline()}
-        {activeTab === 'gmail' && renderGmail()}
         {activeTab === 'insights' && renderInsights()}
       </ScrollView>
 
@@ -397,8 +372,8 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 11, fontWeight: '700' },
 
   // Insights
-  insightCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  insightEmoji: { fontSize: 22 },
+  insightCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  insightIconWrapper: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
   insightMessage: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 20 },
 
   // Modal

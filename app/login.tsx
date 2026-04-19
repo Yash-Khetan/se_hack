@@ -20,7 +20,7 @@ export default function LoginScreen() {
   }, [isConnected]);
 
   return (
-    <LinearGradient colors={['#0B1220', '#0F172A']} style={styles.root}>
+    <LinearGradient colors={colors.backgroundGradient} style={styles.root}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           <View style={styles.logoContainer}>
@@ -36,27 +36,27 @@ export default function LoginScreen() {
               <CalendarIcon size={32} color="#fff" />
             </View>
           </View>
-          
-          <Text style={styles.title}>Lumina Sync</Text>
-          <Text style={styles.subtitle}>
+
+          <Text style={[styles.title, { color: colors.text }]}>Lumina Sync</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
             Connect your academic workspace to unlock AI-driven stress management and intelligent insights.
           </Text>
 
           {isLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-              <Text style={styles.loadingText}>Awaiting authorization...</Text>
+              <ActivityIndicator size="large" color={colors.accent} />
+              <Text style={[styles.loadingText, { color: colors.textMuted }]}>Awaiting authorization...</Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.connectBtn} onPress={connectGoogle} activeOpacity={0.8}>
+            <TouchableOpacity style={[styles.connectBtn, { backgroundColor: colors.accent }]} onPress={connectGoogle} activeOpacity={0.8}>
               <Text style={styles.connectBtnText}>Continue with Google</Text>
               <ArrowRight size={20} color="#fff" />
             </TouchableOpacity>
           )}
-          
+
           <View style={styles.secureBox}>
-            <Text style={styles.secureText}>Read-only access to Calendar & Gmail.</Text>
-            <Text style={styles.secureText}>Your data never leaves your device unencrypted.</Text>
+            <Text style={[styles.secureText, { color: colors.textMuted }]}>Read-only access to Calendar & Gmail.</Text>
+            <Text style={[styles.secureText, { color: colors.textMuted }]}>Your data never leaves your device unencrypted.</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -85,16 +85,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3B82F6',
+    shadowColor: 'rgba(0,0,0,0.3)',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
   },
   logoBadgeOverlap: {
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(128,128,128,0.1)',
     borderWidth: 2,
-    borderColor: '#0F172A',
+    borderColor: 'rgba(128,128,128,0.2)',
     marginLeft: -20,
     shadowColor: '#000',
     shadowOpacity: 0.5,
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#F8FAFC',
     marginBottom: 16,
     textAlign: 'center',
     letterSpacing: 0.5,
@@ -110,7 +109,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#94A3B8',
     textAlign: 'center',
     marginBottom: 48,
   },
@@ -136,7 +134,6 @@ const styles = StyleSheet.create({
   },
   secureText: {
     fontSize: 12,
-    color: '#64748B',
     lineHeight: 18,
   },
   loadingBox: {
@@ -145,7 +142,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    color: '#94A3B8',
     fontSize: 16,
     fontWeight: '500',
   },

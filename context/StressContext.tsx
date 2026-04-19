@@ -47,7 +47,7 @@ export interface GmailSignal {
 
 export interface StressInsight {
   message: string;
-  icon: string;
+  icon: string; // lucide icon name or type
   level: 'info' | 'warning' | 'danger' | 'good';
 }
 
@@ -69,13 +69,13 @@ const StressContext = createContext<StressContextType | undefined>(undefined);
 
 // ─── Safe AsyncStorage ────────────────────────────────────────────────────────
 let AsyncStorage: any;
-try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (_) {}
+try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (_) { }
 
 async function saveAuthData(token: string, name: string | null, email: string | null) {
   if (AsyncStorage) {
-    if (token) await AsyncStorage.setItem('google_stress_token', token).catch(() => {});
-    if (name) await AsyncStorage.setItem('google_stress_name', name).catch(() => {});
-    if (email) await AsyncStorage.setItem('google_stress_email', email).catch(() => {});
+    if (token) await AsyncStorage.setItem('google_stress_token', token).catch(() => { });
+    if (name) await AsyncStorage.setItem('google_stress_name', name).catch(() => { });
+    if (email) await AsyncStorage.setItem('google_stress_email', email).catch(() => { });
   }
 }
 async function loadAuthData() {
@@ -89,9 +89,9 @@ async function loadAuthData() {
 }
 async function clearAuthData() {
   if (AsyncStorage) {
-    await AsyncStorage.removeItem('google_stress_token').catch(() => {});
-    await AsyncStorage.removeItem('google_stress_name').catch(() => {});
-    await AsyncStorage.removeItem('google_stress_email').catch(() => {});
+    await AsyncStorage.removeItem('google_stress_token').catch(() => { });
+    await AsyncStorage.removeItem('google_stress_name').catch(() => { });
+    await AsyncStorage.removeItem('google_stress_email').catch(() => { });
   }
 }
 
@@ -129,7 +129,7 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Copy to clipboard and instruct user
       await Clipboard.setStringAsync(url);
-      
+
       Alert.alert(
         'Link Copied!',
         'Because Google blocks mobile IP redirect testing, you MUST open this link in your computer browser.\n\nPlease paste this copied link on your laptop/PC browser to sign in.',
@@ -139,7 +139,7 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
       // 3. Poll server until user finishes OR timeout (5 mins)
       const maxAttempts = 150; // 150 * 2s = 5 mins
       let attempts = 0;
-      
+
       const poll = setInterval(async () => {
         attempts++;
         if (attempts > maxAttempts) {
@@ -152,7 +152,7 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
         try {
           const pollRes = await fetch(`${API}/check-auth?session=${sessionKey}`);
           const pollData = await pollRes.json();
-          
+
           if (pollData.status === 'done') {
             clearInterval(poll);
             setAccessToken(pollData.token);
@@ -160,7 +160,7 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
             if (pollData.email) setProfileEmail(pollData.email);
             saveAuthData(pollData.token, pollData.name, pollData.email);
             // Invalidate cache immediately so useEffect fetches REAL data
-            cacheRef.current = null; 
+            cacheRef.current = null;
             setIsLoading(false);
           } else if (pollData.status === 'expired' || pollData.status === 'not_found') {
             clearInterval(poll);
@@ -297,11 +297,11 @@ function generateMockData() {
   }
 
   const mockInsights: StressInsight[] = [
-    { message: 'Deadlines are clustering mid-week. Plan your evenings carefully.', icon: '⚠️', level: 'warning' },
-    { message: 'You have 2 exams and 1 submission in the next 5 days.', icon: '🔴', level: 'danger' },
-    { message: 'Weekend is light — great time to get ahead on projects.', icon: '✅', level: 'good' },
-    { message: 'Your academic load peaks on Thursday this week.', icon: '📈', level: 'info' },
-    { message: 'Back-to-back submissions detected — redistribute your workload.', icon: '📌', level: 'warning' },
+    { message: 'Deadlines are clustering mid-week. Plan your evenings carefully.', icon: 'alert-circle', level: 'warning' },
+    { message: 'You have 2 exams and 1 submission in the next 5 days.', icon: 'zap', level: 'danger' },
+    { message: 'Weekend is light — great time to get ahead on projects.', icon: 'check-circle', level: 'good' },
+    { message: 'Your academic load peaks on Thursday this week.', icon: 'trending-up', level: 'info' },
+    { message: 'Back-to-back submissions detected — redistribute your workload.', icon: 'layers', level: 'warning' },
   ];
 
   const mockSignals: GmailSignal[] = [

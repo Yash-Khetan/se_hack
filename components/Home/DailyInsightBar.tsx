@@ -54,7 +54,7 @@ export default function DailyInsightBar() {
           <View
             key={i}
             style={[
-              styles.dot, 
+              styles.dot,
               i === currentIndex && { backgroundColor: colors.accent },
               !isDark && { backgroundColor: i === currentIndex ? colors.accent : 'rgba(0,0,0,0.1)' }
             ]}

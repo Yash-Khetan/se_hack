@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, ScrollView, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { BookOpen, AlertCircle } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import TouchableScale from '@/components/Shared/TouchableScale';
 import { useTheme } from '@/context/ThemeContext';
@@ -48,7 +49,7 @@ export default function HeatmapStrip() {
             <TouchableScale
               key={index}
               style={[
-                styles.dateCard, 
+                styles.dateCard,
                 { backgroundColor: colors.cardSolid, borderColor: colors.border },
                 isSelected && { borderColor: colors.accent, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)' }
               ]}
@@ -67,14 +68,20 @@ export default function HeatmapStrip() {
       {selectedDate && (
         <View style={[styles.detailPanel, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textMuted }]}>📚 Classes</Text>
+            <View style={styles.detailLabelRow}>
+              <BookOpen size={14} color={colors.textMuted} />
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Classes</Text>
+            </View>
             <Text style={[styles.detailValue, { color: colors.text }]}>
               {selectedDate.classes.length > 0 ? selectedDate.classes.join(', ') : 'No classes'}
             </Text>
           </View>
           {selectedDate.deadlines.length > 0 && (
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>⚠️ Deadlines</Text>
+              <View style={styles.detailLabelRow}>
+                <AlertCircle size={14} color={colors.warning} />
+                <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Deadlines</Text>
+              </View>
               <Text style={[styles.detailValue, { color: colors.warning }]}>
                 {selectedDate.deadlines.join(', ')}
               </Text>
@@ -130,10 +137,15 @@ const styles = StyleSheet.create({
   detailRow: {
     marginBottom: 8,
   },
+  detailLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   detailLabel: {
     fontSize: 12,
     fontWeight: '600',
-    marginBottom: 4,
   },
   detailValue: {
     fontSize: 14,

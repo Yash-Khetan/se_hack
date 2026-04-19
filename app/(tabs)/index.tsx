@@ -74,7 +74,7 @@ export default function HomeScreen() {
   const hour = currentTime.getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
   const displayDate = currentTime.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  
+
   // Format time as HH:mm:ss 24hr format
   const displayTime = currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -83,7 +83,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Animated.View style={animatedStyle(0)}>
           <Header
-            title={`${greeting}, ${profile.name} 👋`}
+            title={`${greeting}, ${profile.name}`}
             subtitle={`${displayDate}  •  ${displayTime}`}
             onProfilePress={() => setDrawerVisible(true)}
           />
@@ -96,10 +96,10 @@ export default function HomeScreen() {
           <Animated.View style={animatedStyle(1)}>
             <DailyInsightBar />
           </Animated.View>
-          
+
           <Animated.View style={[animatedStyle(2), styles.dualPortalRow]}>
-            <TouchableOpacity 
-              style={[styles.portalBox, { backgroundColor: colors.cardSolid, borderColor: colors.border }]} 
+            <TouchableOpacity
+              style={[styles.portalBox, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}
               onPress={() => router.push('/emails')}
               activeOpacity={0.8}
             >
@@ -112,8 +112,8 @@ export default function HomeScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.portalBox, { backgroundColor: colors.cardSolid, borderColor: colors.border }]} 
+            <TouchableOpacity
+              style={[styles.portalBox, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}
               onPress={() => router.push('/stress-heatmap')}
               activeOpacity={0.8}
             >
@@ -121,7 +121,7 @@ export default function HomeScreen() {
                 <CalendarIcon size={22} color="#10B981" />
               </View>
               <Text style={[styles.portalTitle, { color: colors.textMuted }]}>Calendar</Text>
-              
+
               <View style={styles.miniHeatmapRow}>
                 {['#10B981', '#F59E0B', '#EF4444', '#10B981', '#10B981', '#64748B', '#F59E0B'].map((color, i) => (
                   <View key={i} style={[styles.miniDot, { backgroundColor: color }]} />

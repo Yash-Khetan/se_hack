@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { useUser } from '@/context/UserContext';
-import { ArrowLeft, Send, Sparkles, Coffee, Train, ShoppingBag, Utensils } from 'lucide-react-native';
+import { ArrowLeft, Send, Sparkles, Coffee, Train, ShoppingBag, Utensils, Moon, Target, TrendingDown } from 'lucide-react-native';
 import Animated, {
   FadeInUp,
   FadeInDown,
@@ -67,7 +67,7 @@ export default function ExpensesScreen() {
   const parseExpense = (text: string) => {
     const amountMatch = text.match(/\d+/);
     const amount = amountMatch ? parseInt(amountMatch[0], 10) : 0;
-    
+
     let category = 'general';
     const lower = text.toLowerCase();
     if (lower.includes('food') || lower.includes('ate') || lower.includes('dinner')) category = 'food';
@@ -82,7 +82,7 @@ export default function ExpensesScreen() {
     setToastMsg(msg);
     toastOpacity.value = withTiming(1, { duration: 300 });
     toastTranslateY.value = withSpring(0);
-    
+
     setTimeout(() => {
       toastOpacity.value = withTiming(0, { duration: 300 });
       toastTranslateY.value = withTiming(20, { duration: 300 });
@@ -112,7 +112,7 @@ export default function ExpensesScreen() {
 
       addExpense(newExpense);
       setInput('');
-      
+
       // Emotionally intelligent feedback
       const msgs = [
         "Noted. Small steps matter.",
@@ -137,9 +137,10 @@ export default function ExpensesScreen() {
   const progress = Math.min((totalSpend / budget) * 100, 100);
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[{ flex: 1, backgroundColor: colors.backgroundGradient[0] }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -150,7 +151,7 @@ export default function ExpensesScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -158,18 +159,18 @@ export default function ExpensesScreen() {
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={[styles.overviewCard, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
           <Text style={[styles.cardSub, { color: colors.textMuted }]}>Weekly Spend</Text>
           <Text style={[styles.totalSpend, { color: colors.text }]}>₹{totalSpend}</Text>
-          
+
           <View style={styles.budgetRow}>
             <Text style={[styles.budgetLabel, { color: colors.textMuted }]}>₹{budget - totalSpend} remaining</Text>
             <Text style={[styles.budgetLabel, { color: colors.textMuted }]}>₹{budget} budget</Text>
           </View>
-          
+
           <View style={[styles.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.progressBarFill, 
+                styles.progressBarFill,
                 { width: `${progress}%`, backgroundColor: progress > 85 ? colors.warning : colors.accent }
-              ]} 
+              ]}
               layout={Layout.springify()}
             />
           </View>
@@ -178,15 +179,15 @@ export default function ExpensesScreen() {
         {/* Weekly Student Wrap */}
         <Animated.View entering={FadeInDown.delay(200).duration(500)}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Student Wrap</Text>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
             {[
-              { icon: '🌙', text: 'You spend more after 9 PM. Late night snacks?', color: colors.accentSecondary },
-              { icon: '🎯', text: 'Stayed within budget 4 days this week.', color: colors.success },
-              { icon: '📉', text: 'Travel spending is down 15% vs last week.', color: colors.accent },
+              { Icon: Moon, text: 'You spend more after 9 PM. Late night snacks?', color: colors.accentSecondary },
+              { Icon: Target, text: 'Stayed within budget 4 days this week.', color: colors.success },
+              { Icon: TrendingDown, text: 'Travel spending is down 15% vs last week.', color: colors.accent },
             ].map((insight, idx) => (
               <View key={idx} style={[styles.insightCard, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
-                <Text style={styles.insightIcon}>{insight.icon}</Text>
+                <insight.Icon size={24} color={insight.color} style={{ marginBottom: 12 }} />
                 <Text style={[styles.insightText, { color: colors.text }]}>{insight.text}</Text>
               </View>
             ))}
@@ -196,15 +197,15 @@ export default function ExpensesScreen() {
         {/* Timeline */}
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.timelineContainer}>
           <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: 20 }]}>Recent Logs</Text>
-          
+
           <View style={styles.timeline}>
             {expenses.map((expense, index) => {
               const catData = CATEGORY_MAP[expense.category] || CATEGORY_MAP['general'];
               const Icon = catData.icon;
               const iconColor = expense.color || catData.color;
               return (
-                <Animated.View 
-                  key={expense.id} 
+                <Animated.View
+                  key={expense.id}
                   entering={FadeInUp.delay(400 + index * 100)}
                   layout={Layout.springify()}
                   style={styles.timelineItem}
@@ -213,7 +214,7 @@ export default function ExpensesScreen() {
                     <View style={[styles.timelineDot, { backgroundColor: iconColor + '20', borderColor: iconColor }]} />
                     {index !== expenses.length - 1 && <View style={[styles.timelineLine, { backgroundColor: colors.borderStrong }]} />}
                   </View>
-                  
+
                   <View style={[styles.expenseCard, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
                     <View style={[styles.expenseIconBox, { backgroundColor: iconColor + '15' }]}>
                       <Icon size={20} color={iconColor} />
@@ -249,8 +250,8 @@ export default function ExpensesScreen() {
           onSubmitEditing={handleLogExpense}
           returnKeyType="send"
         />
-        <TouchableOpacity 
-          style={[styles.sendBtn, { backgroundColor: colors.accent }]} 
+        <TouchableOpacity
+          style={[styles.sendBtn, { backgroundColor: colors.accent }]}
           onPress={handleLogExpense}
         >
           <Send size={18} color="#FFF" />
@@ -331,10 +332,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     marginRight: 12,
-  },
-  insightIcon: {
-    fontSize: 24,
-    marginBottom: 12,
   },
   insightText: {
     fontSize: 14,

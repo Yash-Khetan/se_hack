@@ -29,16 +29,14 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, false),
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
+          backgroundColor: colors.cardSolid,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
           elevation: 0,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarBackground: () => (
-          <BlurView tint={isDark ? 'dark' : 'light'} intensity={80} style={StyleSheet.absoluteFill} />
-        ),
         tabBarShowLabel: true,
         tabBarLabelStyle: {
           fontSize: 10,

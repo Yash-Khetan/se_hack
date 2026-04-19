@@ -13,41 +13,41 @@ export default function EmailsScreen() {
   const { gmailSignals, profileEmail } = useStress();
 
   return (
-    <LinearGradient colors={['#0B1220', '#0F172A']} style={styles.root}>
+    <LinearGradient colors={colors.backgroundGradient} style={styles.root}>
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-            <ArrowLeft size={24} color="#94A3B8" />
+            <ArrowLeft size={24} color={colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.headerTitleBox}>
-            <Mail size={20} color="#3B82F6" />
-            <Text style={styles.headerTitle}>Academic Inbox</Text>
+            <Mail size={20} color={colors.accent} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Academic Inbox</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
 
         {/* Profile Info */}
         <View style={styles.profileBox}>
-          <Text style={styles.connectedText}>Connected Account</Text>
-          <Text style={styles.emailText}>{profileEmail || 'Not configured'}</Text>
+          <Text style={[styles.connectedText, { color: colors.textMuted }]}>Connected Account</Text>
+          <Text style={[styles.emailText, { color: colors.text }]}>{profileEmail || 'Not configured'}</Text>
         </View>
 
         {/* Mails List */}
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {gmailSignals.length === 0 ? (
             <View style={styles.emptyBox}>
-              <AlertCircle size={40} color="#64748B" />
-              <Text style={styles.emptyText}>No critical academic signals found recently.</Text>
+              <AlertCircle size={40} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>No critical academic signals found recently.</Text>
             </View>
           ) : (
             gmailSignals.map((signal, index) => (
               <View key={index} style={[styles.mailCard, { backgroundColor: colors.cardSolid, borderColor: colors.border }]}>
                 <View style={styles.mailTopRow}>
-                  <Text style={styles.fromText} numberOfLines={1}>{signal.from}</Text>
-                  <Text style={styles.dateText}>{signal.date}</Text>
+                  <Text style={[styles.fromText, { color: colors.textMuted }]} numberOfLines={1}>{signal.from}</Text>
+                  <Text style={[styles.dateText, { color: colors.textMuted }]}>{signal.date}</Text>
                 </View>
-                <Text style={styles.subjectText}>{signal.subject}</Text>
+                <Text style={[styles.subjectText, { color: colors.text }]}>{signal.subject}</Text>
                 <View style={[styles.tagBadge, { backgroundColor: `${signal.tagColor}20`, borderColor: `${signal.tagColor}40` }]}>
                   <Text style={[styles.tagText, { color: signal.tagColor }]}>{signal.tag}</Text>
                 </View>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: 'rgba(128,128,128,0.1)',
   },
   backBtn: {
     width: 44,
@@ -84,18 +84,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    color: '#E2E8F0',
     fontSize: 18,
     fontWeight: '700',
   },
   profileBox: {
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: 'rgba(128,128,128,0.1)',
     alignItems: 'center',
   },
   connectedText: {
-    color: '#94A3B8',
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -103,7 +101,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emailText: {
-    color: '#F8FAFC',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -118,7 +115,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyText: {
-    color: '#94A3B8',
     fontSize: 15,
   },
   mailCard: {
@@ -138,18 +134,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   fromText: {
-    color: '#94A3B8',
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
     marginRight: 12,
   },
   dateText: {
-    color: '#64748B',
     fontSize: 12,
   },
   subjectText: {
-    color: '#E2E8F0',
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 22,
