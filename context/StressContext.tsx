@@ -61,7 +61,8 @@ interface StressContextType {
   gmailSignals: GmailSignal[];
   todayStress: DayStress | null;
   refreshData: () => Promise<void>;
-  accessToken: string | null;
+  profileName: string | null;
+  profileEmail: string | null;
 }
 
 const StressContext = createContext<StressContextType | undefined>(undefined);
@@ -70,30 +71,47 @@ const StressContext = createContext<StressContextType | undefined>(undefined);
 let AsyncStorage: any;
 try { AsyncStorage = require('@react-native-async-storage/async-storage').default; } catch (_) {}
 
-async function saveToken(token: string) {
-  if (AsyncStorage) await AsyncStorage.setItem('google_stress_token', token).catch(() => {});
+async function saveAuthData(token: string, name: string | null, email: string | null) {
+  if (AsyncStorage) {
+    if (token) await AsyncStorage.setItem('google_stress_token', token).catch(() => {});
+    if (name) await AsyncStorage.setItem('google_stress_name', name).catch(() => {});
+    if (email) await AsyncStorage.setItem('google_stress_email', email).catch(() => {});
+  }
 }
-async function loadToken(): Promise<string | null> {
-  if (!AsyncStorage) return null;
-  try { return await AsyncStorage.getItem('google_stress_token'); } catch { return null; }
+async function loadAuthData() {
+  if (!AsyncStorage) return { token: null, name: null, email: null };
+  try {
+    const token = await AsyncStorage.getItem('google_stress_token');
+    const name = await AsyncStorage.getItem('google_stress_name');
+    const email = await AsyncStorage.getItem('google_stress_email');
+    return { token, name, email };
+  } catch { return { token: null, name: null, email: null }; }
 }
-async function clearToken() {
-  if (AsyncStorage) await AsyncStorage.removeItem('google_stress_token').catch(() => {});
+async function clearAuthData() {
+  if (AsyncStorage) {
+    await AsyncStorage.removeItem('google_stress_token').catch(() => {});
+    await AsyncStorage.removeItem('google_stress_name').catch(() => {});
+    await AsyncStorage.removeItem('google_stress_email').catch(() => {});
+  }
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function StressProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileEmail, setProfileEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [heatmap, setHeatmap] = useState<DayStress[]>([]);
   const [insights, setInsights] = useState<StressInsight[]>([]);
   const [gmailSignals, setGmailSignals] = useState<GmailSignal[]>([]);
   const cacheRef = useRef<{ expires: number } | null>(null);
 
-  // Load persisted token on mount
+  // Load persisted auth data on mount
   useEffect(() => {
-    loadToken().then(t => {
-      if (t) setAccessToken(t);
+    loadAuthData().then(data => {
+      if (data.token) setAccessToken(data.token);
+      if (data.name) setProfileName(data.name);
+      if (data.email) setProfileEmail(data.email);
     });
   }, []);
 
@@ -138,7 +156,9 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
           if (pollData.status === 'done') {
             clearInterval(poll);
             setAccessToken(pollData.token);
-            saveToken(pollData.token);
+            if (pollData.name) setProfileName(pollData.name);
+            if (pollData.email) setProfileEmail(pollData.email);
+            saveAuthData(pollData.token, pollData.name, pollData.email);
             // Invalidate cache immediately so useEffect fetches REAL data
             cacheRef.current = null; 
             setIsLoading(false);
@@ -160,7 +180,9 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
 
   const disconnectGoogle = useCallback(() => {
     setAccessToken(null);
-    clearToken();
+    setProfileName(null);
+    setProfileEmail(null);
+    clearAuthData();
     cacheRef.current = null;
     refreshData();
   }, [refreshData]);
@@ -213,7 +235,8 @@ export function StressProvider({ children }: { children: React.ReactNode }) {
       gmailSignals,
       todayStress,
       refreshData,
-      accessToken,
+      profileName,
+      profileEmail,
     }}>
       {children}
     </StressContext.Provider>

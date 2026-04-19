@@ -6,22 +6,24 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  ArrowLeft, Clock, MessageCircle, PenTool, Users as UsersIcon, Wifi, WifiOff,
+  ArrowLeft, Clock, MessageCircle, PenTool, Users as UsersIcon, Wifi, WifiOff, CheckSquare
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { SocketProvider, useSocket } from '@/context/SocketContext';
+import { useKanban } from '@/context/KanbanContext';
 import ParticipantAvatars from '@/components/Squad/ParticipantAvatars';
 import MeetingControls from '@/components/Squad/MeetingControls';
 import PanelSheet from '@/components/Squad/PanelSheet';
 import ChatPanel from '@/components/Squad/ChatPanel';
 import ParticipantsPanel from '@/components/Squad/ParticipantsPanel';
 import WhiteboardPanel from '@/components/Squad/WhiteboardPanel';
+import KanbanPanel from '@/components/Squad/KanbanPanel';
 import EmojiOverlay from '@/components/Squad/EmojiOverlay';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-type PanelType = 'chat' | 'whiteboard' | 'participants' | null;
+type PanelType = 'chat' | 'whiteboard' | 'participants' | 'kanban' | null;
 
 export default function MeetingScreen() {
   const params = useLocalSearchParams();
@@ -51,9 +53,10 @@ function MeetingContent({ roomName, roomId }: { roomName: string; roomId: string
   const insets = useSafeAreaInsets();
   const {
     connected, currentUser, participants, joinNotification,
-    handRaisedEvent, emojiReactedEvent,
+    handRaisedEvent, emojiReactedEvent, kanbanTasks,
     raiseHand, sendEmoji, leaveRoom,
   } = useSocket();
+  const { importTasks } = useKanban();
 
   const [activePanel, setActivePanel] = useState<PanelType>(null);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -131,7 +134,20 @@ function MeetingContent({ roomName, roomId }: { roomName: string; roomId: string
   const handleEndCall = () => {
     Alert.alert('Leave Meeting', 'Are you sure you want to leave?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Leave', style: 'destructive', onPress: () => { leaveRoom(); router.back(); } },
+      { text: 'Leave', style: 'destructive', onPress: () => { 
+        // Migrate pending tasks assigned to current user
+        if (currentUser) {
+          const myPendingTasks = kanbanTasks.filter(t => 
+            (t.assigneeId === currentUser.id || t.assigneeName === currentUser.name) && 
+            t.status !== 'done'
+          );
+          if (myPendingTasks.length > 0) {
+            importTasks(myPendingTasks);
+          }
+        }
+        leaveRoom(); 
+        router.back(); 
+      } },
     ]);
   };
 
@@ -204,7 +220,7 @@ function MeetingContent({ roomName, roomId }: { roomName: string; roomId: string
             </Text>
             <View style={styles.roomInfoDivider} />
             <View style={styles.featureRow}>
-              {['Live Chat', 'Whiteboard', 'Reactions'].map((f, i) => (
+              {['Live Chat', 'Whiteboard', 'Reactions', 'Kanban'].map((f, i) => (
                 <View key={i} style={styles.featurePill}>
                   <Text style={styles.featurePillText}>{f}</Text>
                 </View>
@@ -240,6 +256,14 @@ function MeetingContent({ roomName, roomId }: { roomName: string; roomId: string
             <Text style={[styles.tabLabel, activePanel === 'whiteboard' && styles.tabLabelActive]}>Whiteboard</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.tabItem, activePanel === 'kanban' && styles.tabItemActive]}
+            onPress={() => handlePanelToggle('kanban')}
+            activeOpacity={0.7}
+          >
+            <CheckSquare size={19} color={activePanel === 'kanban' ? '#3B82F6' : '#64748B'} />
+            <Text style={[styles.tabLabel, activePanel === 'kanban' && styles.tabLabelActive]}>Tasks</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.tabItem, activePanel === 'participants' && styles.tabItemActive]}
             onPress={() => handlePanelToggle('participants')}
             activeOpacity={0.7}
@@ -260,6 +284,9 @@ function MeetingContent({ roomName, roomId }: { roomName: string; roomId: string
         {/* ── Pull-up Panels ── */}
         <PanelSheet visible={activePanel === 'chat'} title="💬 Chat" onClose={() => setActivePanel(null)}>
           <ChatPanel />
+        </PanelSheet>
+        <PanelSheet visible={activePanel === 'kanban'} title="📋 Tasks" onClose={() => setActivePanel(null)}>
+          <KanbanPanel />
         </PanelSheet>
         <PanelSheet visible={activePanel === 'whiteboard'} title="🎨 Whiteboard" onClose={() => setActivePanel(null)}>
           <WhiteboardPanel />

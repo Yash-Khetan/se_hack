@@ -50,6 +50,7 @@ import { FocusProvider } from '@/context/FocusContext';
 import { StressProvider } from '@/context/StressContext';
 import { ThemeProvider as LuminaThemeProvider } from '@/context/ThemeContext';
 import { UserProvider } from '@/context/UserContext';
+import { KanbanProvider } from '@/context/KanbanContext';
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
@@ -61,13 +62,18 @@ function RootLayoutNav() {
           <FocusProvider>
             <StressProvider>
               <UserProvider>
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="expenses" options={{ presentation: 'modal', headerShown: false }} />
-                  <Stack.Screen name="stress-heatmap" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                </Stack>
+                <KanbanProvider>
+                  <Stack>
+                    <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="meeting" options={{ headerShown: false, animation: 'slide_from_right' }} />
+                    <Stack.Screen name="expenses" options={{ presentation: 'modal', headerShown: false }} />
+                    <Stack.Screen name="kanban" options={{ presentation: 'modal', headerShown: false }} />
+                    <Stack.Screen name="stress-heatmap" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+                    <Stack.Screen name="emails" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+                    <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                  </Stack>
+                </KanbanProvider>
               </UserProvider>
             </StressProvider>
           </FocusProvider>

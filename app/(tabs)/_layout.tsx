@@ -1,14 +1,25 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { Home, BarChart2, Brain, Users, Focus, Activity } from 'lucide-react-native';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { BlurView } from 'expo-blur';
 import { StyleSheet } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { useStress } from '@/context/StressContext';
 
 export default function TabLayout() {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
+  const { isConnected, isLoading } = useStress();
+
+  useEffect(() => {
+    if (!isLoading && !isConnected) {
+      router.replace('/login');
+    }
+  }, [isConnected, isLoading]);
+
+  if (!isConnected) return null; // Prevent flicker before redirect
 
   return (
     <Tabs

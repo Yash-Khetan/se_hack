@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const os = require('os');
 const { randomBytes } = require('crypto');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,47 @@ const io = new Server(server, {
 app.use(express.json({ limit: '20mb' }));
 
 const GEMINI_API_KEY = "AIzaSyCgea" + "6YI2-GJ2xHF" + "-WV_0VokX" + "ZPeOHOEJ0";
+
+// ── Database Setup (Hackathon SQLite Persistence) ──
+const db = new sqlite3.Database('./database.sqlite', (err) => {
+  if (err) console.error('DB Error:', err.message);
+  else console.log('✅ Connected to SQLite database.');
+});
+
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS Users (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    email TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS PersonalTasks (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    title TEXT,
+    status TEXT,
+    createdAt INTEGER,
+    roomId TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS SquadTasks (
+    id TEXT PRIMARY KEY,
+    roomId TEXT,
+    title TEXT,
+    status TEXT,
+    assigneeId TEXT,
+    assigneeName TEXT,
+    createdAt INTEGER
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS Expenses (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    amount REAL,
+    category TEXT,
+    note TEXT,
+    date TEXT,
+    icon TEXT,
+    color TEXT
+  )`);
+});
 
 // ── In-memory room storage ──
 const rooms = new Map();
@@ -77,6 +119,7 @@ io.on('connection', (socket) => {
         participants: existingRoom.participants,
         messages: existingRoom.messages,
         whiteboardPaths: existingRoom.whiteboardPaths,
+        kanbanTasks: existingRoom.kanbanTasks || [],
         user,
       });
       socket.to(roomId).emit('participants-update', { participants: existingRoom.participants });
@@ -85,41 +128,45 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const user = {
-      id: socket.id,
-      name: userName || 'Host',
-      initials: buildInitials(userName || 'Host'),
-      color: USER_COLORS[colorIdx++ % USER_COLORS.length],
-      isHost: true,
-      isHandRaised: false,
-      joinedAt: Date.now(),
-    };
+    db.all(`SELECT * FROM SquadTasks WHERE roomId = ?`, [roomId], (err, rows) => {
+      const user = {
+        id: socket.id,
+        name: userName || 'Host',
+        initials: buildInitials(userName || 'Host'),
+        color: USER_COLORS[colorIdx++ % USER_COLORS.length],
+        isHost: true,
+        isHandRaised: false,
+        joinedAt: Date.now(),
+      };
 
-    const room = {
-      id: roomId,
-      name: roomName || 'Meeting Room',
-      password: password || '',
-      participants: [user],
-      messages: [],
-      whiteboardPaths: [],
-      createdAt: Date.now(),
-    };
+      const room = {
+        id: roomId,
+        name: roomName || 'Meeting Room',
+        password: password || '',
+        participants: [user],
+        messages: [],
+        whiteboardPaths: [],
+        kanbanTasks: rows || [],
+        createdAt: Date.now(),
+      };
 
-    rooms.set(roomId, room);
-    socket.join(roomId);
-    currentRoom = roomId;
-    currentUser = user;
+      rooms.set(roomId, room);
+      socket.join(roomId);
+      currentRoom = roomId;
+      currentUser = user;
 
-    socket.emit('room-joined', {
-      roomId,
-      roomName: room.name,
-      participants: room.participants,
-      messages: room.messages,
-      whiteboardPaths: room.whiteboardPaths,
-      user,
+      socket.emit('room-joined', {
+        roomId,
+        roomName: room.name,
+        participants: room.participants,
+        messages: room.messages,
+        whiteboardPaths: room.whiteboardPaths,
+        kanbanTasks: room.kanbanTasks,
+        user,
+      });
+
+      console.log(`🏠 Room created: ${roomId} by "${userName}" (Loaded ${room.kanbanTasks.length} tasks from DB)`);
     });
-
-    console.log(`🏠 Room created: ${roomId} by "${userName}"`);
   });
 
   // ─── Join Room ───
@@ -159,6 +206,7 @@ io.on('connection', (socket) => {
       participants: room.participants,
       messages: room.messages,
       whiteboardPaths: room.whiteboardPaths,
+      kanbanTasks: room.kanbanTasks || [],
       user,
     });
 
@@ -303,6 +351,62 @@ io.on('connection', (socket) => {
       userName: currentUser.name,
       userId: socket.id,
     });
+  });
+
+  // ─── Kanban Tasks ───
+  socket.on('kanban-task-add', ({ roomId, task }) => {
+    if (!currentUser) return;
+    const room = getRoom(roomId);
+    if (!room) return;
+    
+    room.kanbanTasks = room.kanbanTasks || [];
+    room.kanbanTasks.push(task);
+
+    db.run(
+      `INSERT INTO SquadTasks (id, roomId, title, status, assigneeId, assigneeName, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [task.id, roomId, task.title, task.status, task.assigneeId || null, task.assigneeName || null, task.createdAt],
+      (err) => { if (err) console.error('Add SquadTask Error:', err); }
+    );
+
+    io.to(roomId).emit('kanban-task-added', task);
+    console.log(`📋 [${roomId}] Task added by ${currentUser.name}: ${task.title}`);
+  });
+
+  socket.on('kanban-task-update', ({ roomId, task }) => {
+    if (!currentUser) return;
+    const room = getRoom(roomId);
+    if (!room) return;
+    
+    room.kanbanTasks = room.kanbanTasks || [];
+    const idx = room.kanbanTasks.findIndex(t => t.id === task.id);
+    if (idx !== -1) {
+      room.kanbanTasks[idx] = task;
+
+      db.run(
+        `UPDATE SquadTasks SET title = ?, status = ?, assigneeId = ?, assigneeName = ? WHERE id = ?`,
+        [task.title, task.status, task.assigneeId || null, task.assigneeName || null, task.id],
+        (err) => { if (err) console.error('Update SquadTask Error:', err); }
+      );
+
+      io.to(roomId).emit('kanban-task-updated', task);
+      console.log(`📋 [${roomId}] Task updated by ${currentUser.name}: ${task.title}`);
+    }
+  });
+
+  socket.on('kanban-task-delete', ({ roomId, taskId }) => {
+    if (!currentUser) return;
+    const room = getRoom(roomId);
+    if (!room) return;
+    
+    room.kanbanTasks = room.kanbanTasks || [];
+    room.kanbanTasks = room.kanbanTasks.filter(t => t.id !== taskId);
+
+    db.run(`DELETE FROM SquadTasks WHERE id = ?`, [taskId], (err) => {
+      if (err) console.error('Delete SquadTask Error:', err);
+    });
+
+    io.to(roomId).emit('kanban-task-deleted', { taskId });
+    console.log(`🗑️ [${roomId}] Task deleted by ${currentUser.name}: ${taskId}`);
   });
 
   // ─── Leave / Disconnect ───
@@ -456,6 +560,77 @@ Only return the array. No markdown.`;
   }
 });
 
+// ── REST APIs: Personal Kanban Data Persistence ──
+app.get('/api/kanban/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.all(`SELECT * FROM PersonalTasks WHERE userId = ? ORDER BY createdAt DESC`, [userId], (err, rows) => {
+    if (err) {
+      console.error('Failed to GET personal tasks:', err);
+      return res.status(500).json({ error: 'DB Error' });
+    }
+    res.json({ tasks: rows || [] });
+  });
+});
+
+app.post('/api/kanban/:userId/sync', (req, res) => {
+  const { userId } = req.params;
+  const { tasks } = req.body;
+  
+  if (!Array.isArray(tasks)) {
+    return res.status(400).json({ error: 'Payload must contain a tasks array.' });
+  }
+
+  // To do a bulk sync quickly, clear existing for this user and batch insert:
+  db.serialize(() => {
+    db.run(`DELETE FROM PersonalTasks WHERE userId = ?`, [userId], (err) => {
+      if (err) console.error('Delete personal tasks failed:', err);
+    });
+
+    const stmt = db.prepare(`INSERT INTO PersonalTasks (id, userId, title, status, createdAt, roomId) VALUES (?, ?, ?, ?, ?, ?)`);
+    tasks.forEach(t => {
+      stmt.run(t.id, userId, t.title, t.status, t.createdAt, t.roomId || null);
+    });
+    stmt.finalize();
+  });
+
+  res.json({ status: 'success' });
+});
+
+// ── REST APIs: Expense Tracker Data Persistence ──
+app.get('/api/expenses/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.all(`SELECT * FROM Expenses WHERE userId = ? ORDER BY date DESC`, [userId], (err, rows) => {
+    if (err) {
+      console.error('Failed to GET expenses:', err);
+      return res.status(500).json({ error: 'DB Error' });
+    }
+    res.json({ expenses: rows || [] });
+  });
+});
+
+app.post('/api/expenses/:userId/sync', (req, res) => {
+  const { userId } = req.params;
+  const { expenses } = req.body;
+  
+  if (!Array.isArray(expenses)) {
+    return res.status(400).json({ error: 'Payload must contain an expenses array.' });
+  }
+
+  db.serialize(() => {
+    db.run(`DELETE FROM Expenses WHERE userId = ?`, [userId], (err) => {
+      if (err) console.error('Delete expenses failed:', err);
+    });
+
+    const stmt = db.prepare(`INSERT INTO Expenses (id, userId, amount, category, note, date, icon, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    expenses.forEach(e => {
+      stmt.run(e.id, userId, e.amount, e.category, e.note, e.date, e.icon || null, e.color || null);
+    });
+    stmt.finalize();
+  });
+
+  res.json({ status: 'success' });
+});
+
 // ── Stress & Academic Awareness Engine ──────────────────────────────────────
 
 // ─── Google OAuth (server-side, Expo Go compatible) ──────────────────────────
@@ -529,11 +704,27 @@ app.get('/api/stress/callback', async (req, res) => {
     const tokenData = await tokenRes.json();
 
     if (tokenData.access_token) {
+      // Fetch user profile identity
+      let name = null;
+      let email = null;
+      try {
+        const uiRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        });
+        if (uiRes.ok) {
+          const ui = await uiRes.json();
+          name = ui.name;
+          email = ui.email;
+        }
+      } catch (e) { console.warn("Failed to fetch userinfo", e); }
+
       oauthSessions.set(sessionKey, {
         token: tokenData.access_token,
         refresh_token: tokenData.refresh_token || null,
         pending: false,
         expires: Date.now() + (tokenData.expires_in || 3600) * 1000,
+        name,
+        email,
       });
       return res.send(buildPage('✅ Connected!', '<p style="color:#10B981;font-size:18px">Google Calendar & Gmail are now linked.</p><p style="margin-top:16px;color:#666">You can close this tab and return to the app.</p>', true));
     } else {
@@ -553,9 +744,9 @@ app.get('/api/stress/check-auth', (req, res) => {
   if (s.pending) return res.json({ status: 'pending' });
   if (Date.now() > s.expires) { oauthSessions.delete(session); return res.json({ status: 'expired' }); }
 
-  const { token, refresh_token } = s;
+  const { token, refresh_token, name, email } = s;
   oauthSessions.delete(session); // one-time use
-  return res.json({ status: 'done', token, refresh_token });
+  return res.json({ status: 'done', token, refresh_token, name, email });
 });
 
 // GET /api/stress/refresh — refresh an expired access token

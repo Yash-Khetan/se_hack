@@ -43,88 +43,7 @@ function AttendanceRing({ percentage }: { percentage: number }) {
   );
 }
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function getMockStressForMonth(year: number, month: number): Record<number, number> {
-  const seed = year * 12 + month;
-  const data: Record<number, number> = {};
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const v = ((seed * 31 + d * 17) % 7);
-    data[d] = v < 2 ? 0 : v < 4 ? 1 : v < 6 ? 2 : 3;
-  }
-  return data;
-}
-
-function StressHeatmap() {
-  const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-
-  const getColor = (val: number) => {
-    if (val === 0) return 'rgba(255,255,255,0.06)';
-    if (val === 1) return 'rgba(16,185,129,0.55)';
-    if (val === 2) return 'rgba(245,166,35,0.65)';
-    return 'rgba(239,68,68,0.75)';
-  };
-
-  const goBack = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
-  };
-  const goForward = () => {
-    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-    if (isCurrentMonth) return;
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
-  };
-
-  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDayJS = new Date(viewYear, viewMonth, 1).getDay();
-  const firstDayMon = firstDayJS === 0 ? 6 : firstDayJS - 1;
-
-  const stressData = getMockStressForMonth(viewYear, viewMonth);
-  const cells: (number | null)[] = [...Array(firstDayMon).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-  while (cells.length % 7 !== 0) cells.push(null);
-  const weekRows: (number | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
-
-  return (
-    <View style={styles.heatmapContainer}>
-      <View style={styles.heatmapHeader}>
-        <Text style={styles.sectionTitle}>Stress Heatmap</Text>
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(16,185,129,0.55)' }]} />
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(245,166,35,0.65)' }]} />
-          <View style={[styles.legendDot, { backgroundColor: 'rgba(239,68,68,0.75)' }]} />
-        </View>
-      </View>
-
-      <View style={styles.monthNav}>
-        <TouchableOpacity style={styles.monthNavBtn} onPress={goBack}><ChevronLeft size={16} color={Colors.theme.accent} /></TouchableOpacity>
-        <Text style={styles.monthNavTitle}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
-        <TouchableOpacity style={[styles.monthNavBtn, isCurrentMonth && styles.monthNavBtnDisabled]} onPress={goForward} disabled={isCurrentMonth}>
-          <ChevronRight size={16} color={isCurrentMonth ? Colors.theme.textMuted : Colors.theme.accent} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.heatmapGrid}>
-        {weekRows.map((row, wi) => (
-          <View key={wi} style={styles.heatmapRow}>
-            {row.map((day, di) => (
-              <View key={di} style={[styles.heatmapCell, day && { backgroundColor: getColor(stressData[day] ?? 0) }, day === now.getDate() && isCurrentMonth && styles.heatmapCellToday]} />
-            ))}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
 
 // --- Main Screen ---
 
@@ -245,8 +164,7 @@ export default function AttendanceScreen() {
             </View>
           </View>
 
-          {/* Stress Heatmap integrated into Dashboard */}
-          <StressHeatmap />
+
 
           {/* Subjects Section */}
           <Text style={styles.sectionTitle}>Academic Breakdown</Text>
@@ -321,18 +239,7 @@ const styles = StyleSheet.create({
   badgeSuccess: { backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' },
   badgeWarning: { backgroundColor: 'rgba(245,166,35,0.1)', borderColor: 'rgba(245,166,35,0.2)' },
   badgeText: { fontSize: 10, color: Colors.theme.text, fontWeight: '600' },
-  // Heatmap
-  heatmapContainer: { marginTop: 25, backgroundColor: Colors.theme.cardSolid, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: Colors.theme.border },
-  heatmapHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  legendRow: { flexDirection: 'row', gap: 4 },
-  legendDot: { width: 6, height: 6, borderRadius: 3 },
-  monthNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  monthNavBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' },
-  monthNavTitle: { color: Colors.theme.text, fontSize: 14, fontWeight: '600' },
-  heatmapGrid: { gap: 6 },
-  heatmapRow: { flexDirection: 'row', gap: 6 },
-  heatmapCell: { flex: 1, aspectRatio: 1, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)' },
-  heatmapCellToday: { borderWidth: 1, borderColor: Colors.theme.accent },
+
   // Empty
   emptyCard: { alignItems: 'center', padding: 40, borderStyle: 'dashed', borderWidth: 1, borderColor: Colors.theme.border, borderRadius: 24 },
   emptyTitle: { color: Colors.theme.text, fontSize: 16, fontWeight: '600', marginTop: 15 },

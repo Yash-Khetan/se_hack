@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import { Alert } from 'react-native';
 import { io, Socket } from 'socket.io-client';
+import { KanbanTask, TaskStatus } from './KanbanContext';
 
 // ── Types ──
 export interface SocketUser {
@@ -43,11 +44,14 @@ interface SocketContextType {
   participants: SocketUser[];
   messages: ChatMessage[];
   whiteboardPaths: WhiteboardPath[];
-  editingUser: string | null;        // name of remote user drawing
+  kanbanTasks: KanbanTask[];
   joinNotification: string | null;
   handRaisedEvent: { userName: string; userId: string; isRaised: boolean } | null;
   emojiReactedEvent: { emoji: string; userName: string } | null;
 
+  addKanbanTask: (title: string, status?: TaskStatus, assigneeId?: string, assigneeName?: string) => void;
+  updateKanbanTask: (task: KanbanTask) => void;
+  deleteKanbanTask: (taskId: string) => void;
   sendMessage: (text: string, isCode: boolean) => void;
   sendDrawPath: (pathData: { d: string; color: string; strokeWidth: number }) => void;
   sendEditing: () => void;
@@ -86,6 +90,7 @@ export function SocketProvider({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [whiteboardPaths, setWhiteboardPaths] = useState<WhiteboardPath[]>([]);
   const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>([]);
   const [joinNotification, setJoinNotification] = useState<string | null>(null);
   const [handRaisedEvent, setHandRaisedEvent] = useState<{
     userName: string; userId: string; isRaised: boolean;
@@ -142,6 +147,7 @@ export function SocketProvider({
       setParticipants(data.participants || []);
       setMessages(data.messages || []);
       setWhiteboardPaths(data.whiteboardPaths || []);
+      setKanbanTasks(data.kanbanTasks || []);
     });
 
     socket.on('room-error', ({ message: msg }) => {
@@ -221,6 +227,19 @@ export function SocketProvider({
       setTimeout(() => setEmojiReactedEvent(null), 200);
     });
 
+    // ── Kanban ──
+    socket.on('kanban-task-added', (task: KanbanTask) => {
+      setKanbanTasks(prev => [...prev, task]);
+    });
+
+    socket.on('kanban-task-updated', (updatedTask: KanbanTask) => {
+      setKanbanTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    });
+
+    socket.on('kanban-task-deleted', ({ taskId }: { taskId: string }) => {
+      setKanbanTasks(prev => prev.filter(t => t.id !== taskId));
+    });
+
     return () => {
       socket.emit('leave-room');
       socket.disconnect();
@@ -229,6 +248,30 @@ export function SocketProvider({
   }, [serverUrl, roomId, isHost]);
 
   // ── Action dispatchers ──
+  const addKanbanTask = useCallback((title: string, status: TaskStatus = 'todo', assigneeId?: string, assigneeName?: string) => {
+    if (!socketRef.current?.connected) return;
+    const task: KanbanTask = {
+      id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      title: title.trim(),
+      status,
+      assigneeId,
+      assigneeName,
+      roomId: roomIdRef.current,
+      createdAt: Date.now(),
+    };
+    socketRef.current.emit('kanban-task-add', { roomId: roomIdRef.current, task });
+  }, []);
+
+  const updateKanbanTask = useCallback((task: KanbanTask) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('kanban-task-update', { roomId: roomIdRef.current, task });
+  }, []);
+
+  const deleteKanbanTask = useCallback((taskId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('kanban-task-delete', { roomId: roomIdRef.current, taskId });
+  }, []);
+
   const sendMessage = useCallback((text: string, isCode: boolean) => {
     if (!socketRef.current?.connected) {
       Alert.alert('Not connected', 'You are not connected to the server.');
@@ -305,9 +348,13 @@ export function SocketProvider({
       messages,
       whiteboardPaths,
       editingUser,
+      kanbanTasks,
       joinNotification,
       handRaisedEvent,
       emojiReactedEvent,
+      addKanbanTask,
+      updateKanbanTask,
+      deleteKanbanTask,
       sendMessage,
       sendDrawPath,
       sendEditing,

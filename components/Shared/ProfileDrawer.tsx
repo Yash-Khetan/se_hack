@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
   X, Settings, CreditCard, LogOut, ChevronRight,
-  User, Calendar, Moon, Sun, Bell, Shield, ArrowLeft, Check, Edit2
+  User, Calendar, Moon, Sun, Bell, Shield, ArrowLeft, Check, Edit2, CheckSquare
 } from 'lucide-react-native';
 import Colors from '@/constants/Colors';
 import { BlurView } from 'expo-blur';
@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 const { width, height } = Dimensions.get('window');
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 import { useUser, Profile, AppSettings } from '@/context/UserContext';
+import { useStress } from '@/context/StressContext';
 
 interface Props {
   visible: boolean;
@@ -28,9 +29,15 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   const { profile, setProfile, settings, setSettings } = useUser();
+  const { disconnectGoogle } = useStress();
   const [slideAnim] = useState(new Animated.Value(width));
   const [view, setView] = useState<DrawerView>('main');
   const [editingProfile, setEditingProfile] = useState<Profile>(profile);
+
+  const handleSignOut = () => {
+    onClose();
+    disconnectGoogle();
+  };
 
   useEffect(() => {
     if (visible) {
@@ -125,6 +132,20 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
           <ChevronRight size={16} color={Colors.theme.textMuted} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={styles.menuItem} 
+          onPress={() => {
+            handleClose();
+            router.push('/kanban');
+          }}
+        >
+          <View style={styles.menuIconBox}>
+            <CheckSquare size={18} color={Colors.theme.accent} />
+          </View>
+          <Text style={styles.menuLabel}>Personal Kanban</Text>
+          <ChevronRight size={16} color={Colors.theme.textMuted} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuIconBox}>
             <Shield size={18} color={Colors.theme.accent} />
@@ -134,7 +155,7 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.logoutBtn}>
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
         <LogOut size={18} color={Colors.theme.danger} />
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
@@ -234,7 +255,7 @@ export default function ProfileDrawer({ visible, onClose }: Props) {
         <View style={{ height: 80 }} />
       </ScrollView>
 
-      <TouchableOpacity style={styles.logoutBtn}>
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleSignOut}>
         <LogOut size={18} color={Colors.theme.danger} />
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
