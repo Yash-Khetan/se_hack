@@ -1,4 +1,4 @@
-# 🌟 Lumina SyncSpace 
+# 🌟 Lumina Sync
 
 *An intelligent, highly persistent, and unified academic ecosystem built to seamlessly track, predict, and optimize a student's university life.*
 
