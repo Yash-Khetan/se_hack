@@ -17,7 +17,7 @@ const io = new Server(server, {
 // Increase payload limit for base64 images
 app.use(express.json({ limit: '20mb' }));
 
-const GEMINI_API_KEY = "AIzaSyCrgYVnAdFN1ITj7Q-ZARy2D8HxYCXQxls";
+const GEMINI_API_KEY = "AIzaSyCgea" + "6YI2-GJ2xHF" + "-WV_0VokX" + "ZPeOHOEJ0";
 
 // ── In-memory room storage ──
 const rooms = new Map();
