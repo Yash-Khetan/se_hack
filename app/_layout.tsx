@@ -58,10 +58,10 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <LuminaThemeProvider>
-        <AttendanceProvider>
-          <FocusProvider>
-            <StressProvider>
-              <UserProvider>
+        <StressProvider>
+          <UserProvider>
+            <FocusProvider>
+              <AttendanceProvider>
                 <KanbanProvider>
                   <Stack>
                     <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
@@ -74,10 +74,10 @@ function RootLayoutNav() {
                     <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                   </Stack>
                 </KanbanProvider>
-              </UserProvider>
-            </StressProvider>
-          </FocusProvider>
-        </AttendanceProvider>
+              </AttendanceProvider>
+            </FocusProvider>
+          </UserProvider>
+        </StressProvider>
       </LuminaThemeProvider>
     </ThemeProvider>
   );

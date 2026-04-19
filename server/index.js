@@ -59,6 +59,16 @@ db.serialize(() => {
     icon TEXT,
     color TEXT
   )`);
+  db.run(`CREATE TABLE IF NOT EXISTS Attendance (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    name TEXT,
+    credits REAL,
+    lab INTEGER,
+    attended INTEGER,
+    total INTEGER,
+    schedule TEXT
+  )`);
 });
 
 // ── In-memory room storage ──
@@ -624,6 +634,47 @@ app.post('/api/expenses/:userId/sync', (req, res) => {
     const stmt = db.prepare(`INSERT INTO Expenses (id, userId, amount, category, note, date, icon, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
     expenses.forEach(e => {
       stmt.run(e.id, userId, e.amount, e.category, e.note, e.date, e.icon || null, e.color || null);
+    });
+    stmt.finalize();
+  });
+
+  res.json({ status: 'success' });
+});
+
+// ── REST APIs: Attendance Data Persistence ──
+app.get('/api/attendance/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.all(`SELECT * FROM Attendance WHERE userId = ?`, [userId], (err, rows) => {
+    if (err) {
+      console.error('Failed to GET attendance:', err);
+      return res.status(500).json({ error: 'DB Error' });
+    }
+    // Parse the JSON string stored in 'schedule' column
+    const formatted = (rows || []).map(r => ({
+      ...r,
+      lab: r.lab === 1,
+      schedule: r.schedule ? JSON.parse(r.schedule) : {}
+    }));
+    res.json({ subjects: formatted });
+  });
+});
+
+app.post('/api/attendance/:userId/sync', (req, res) => {
+  const { userId } = req.params;
+  const { subjects } = req.body;
+  
+  if (!Array.isArray(subjects)) {
+    return res.status(400).json({ error: 'Payload must contain a subjects array.' });
+  }
+
+  db.serialize(() => {
+    db.run(`DELETE FROM Attendance WHERE userId = ?`, [userId], (err) => {
+      if (err) console.error('Delete attendance failed:', err);
+    });
+
+    const stmt = db.prepare(`INSERT INTO Attendance (id, userId, name, credits, lab, attended, total, schedule) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    subjects.forEach(s => {
+      stmt.run(s.id, userId, s.name, s.credits, s.lab ? 1 : 0, s.attended, s.total, JSON.stringify(s.schedule || {}));
     });
     stmt.finalize();
   });

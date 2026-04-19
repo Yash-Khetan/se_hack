@@ -43,8 +43,6 @@ export default function SecondBrainScreen() {
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All Subjects');
-  const [showFilter, setShowFilter] = useState(false);
   const [pendingFile, setPendingFile] = useState<{ name: string; size?: number; mimeType?: string; uri: string } | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   
@@ -219,32 +217,8 @@ export default function SecondBrainScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>Second Brain</Text>
-              <View style={styles.privacyBadge}>
-                <Cloud size={11} color={Colors.theme.accent} />
-                <Text style={styles.privacyText}>{documentId ? 'Document Indexed' : 'Cloud RAG Active'}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilter(!showFilter)}>
-              <Text style={styles.filterBtnText}>{selectedSubject}</Text>
-              <ChevronDown size={14} color={Colors.theme.accent} />
-            </TouchableOpacity>
+            <Text style={styles.title}>Second Brain</Text>
           </View>
-
-          {showFilter && (
-            <View style={styles.dropdown}>
-              {subjects.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={[styles.dropdownItem, selectedSubject === s && styles.dropdownItemActive]}
-                  onPress={() => { setSelectedSubject(s); setShowFilter(false); }}
-                >
-                  <Text style={[styles.dropdownText, selectedSubject === s && { color: Colors.theme.accent }]}>{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
 
           <ScrollView
             ref={scrollRef}
@@ -351,14 +325,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 10, paddingBottom: 8 },
   title: { color: Colors.theme.text, fontSize: 24, fontWeight: '700' },
-  privacyBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  privacyText: { color: Colors.theme.accent, fontSize: 10, fontWeight: '600' },
-  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(59,130,246,0.1)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' },
-  filterBtnText: { color: Colors.theme.accent, fontSize: 12, fontWeight: '600' },
-  dropdown: { marginHorizontal: 18, backgroundColor: Colors.theme.cardSolid, borderRadius: 12, borderWidth: 1, borderColor: Colors.theme.border, marginBottom: 6, overflow: 'hidden' },
-  dropdownItem: { paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-  dropdownItemActive: { backgroundColor: 'rgba(59,130,246,0.08)' },
-  dropdownText: { color: Colors.theme.text, fontSize: 13 },
   chatArea: { flex: 1 },
   chatContent: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 20 },
   bubbleRow: { flexDirection: 'row', marginBottom: 12, maxWidth: '85%' },

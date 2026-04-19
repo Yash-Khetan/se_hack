@@ -11,7 +11,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   Brain, Play, Square, Activity, AlertTriangle,
-  Clock, History, TrendingUp, Zap, ChevronDown, ChevronUp,
+  Clock, History, trendingUp, Zap, ChevronDown, ChevronUp,
+  Trash2, TrendingUp
 } from 'lucide-react-native';
 import GradientBackground from '@/components/Shared/GradientBackground';
 import { useFocus, FocusSessionData, ExitEvent } from '@/context/FocusContext';
@@ -277,9 +278,14 @@ export default function AnalyticsScreen() {
           entering={FadeInDown}
           style={[styles.aggregateCard, { backgroundColor: colors.accent + '18', borderColor: colors.accent + '55' }]}
         >
-          <View style={styles.aggregateRow}>
-            <TrendingUp size={20} color={colors.accent} />
-            <Text style={[styles.aggregateTitle, { color: colors.text }]}>Today's Focus Summary</Text>
+          <View style={[styles.aggregateRow, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TrendingUp size={20} color={colors.accent} />
+              <Text style={[styles.aggregateTitle, { color: colors.text }]}>Today's Focus Summary</Text>
+            </View>
+            <TouchableOpacity onPress={clearSummary} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Trash2 size={18} color={colors.danger} />
+            </TouchableOpacity>
           </View>
           <View style={styles.aggregateStats}>
             {[
@@ -375,7 +381,7 @@ const styles = StyleSheet.create({
 
   // History view
   aggregateCard: { borderRadius: 22, borderWidth: 1, padding: 20, marginTop: 16, marginBottom: 20 },
-  aggregateRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  aggregateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   aggregateTitle: { fontSize: 16, fontWeight: '700' },
   aggregateStats: { flexDirection: 'row', justifyContent: 'space-between' },
   aggStat: { alignItems: 'center', flex: 1 },

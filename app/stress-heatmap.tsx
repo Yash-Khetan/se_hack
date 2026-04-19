@@ -268,12 +268,14 @@ export default function StressHeatmapScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={16}>
               <ArrowLeft size={22} color={textCol} />
             </TouchableOpacity>
-            <View style={{ flex: 1 }}>
+            
+            <View style={styles.headerTextWrapper}>
               <Text style={[styles.headerTitle, { color: textCol }]}>Academic Stress Map</Text>
               <Text style={[styles.headerSubtitle, { color: mutedCol }]}>
                 {isConnected ? '🟢 Connected to Google' : '⚪ Demo Mode'}
               </Text>
             </View>
+
             <TouchableOpacity onPress={refreshData} style={styles.refreshBtn} hitSlop={12}>
               {isLoading
                 ? <ActivityIndicator size="small" color={textCol} />
@@ -317,11 +319,12 @@ export default function StressHeatmapScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingBottom: 16 },
-  headerInner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, gap: 12 },
+  headerInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 6, minHeight: 44 },
+  headerTextWrapper: { flex: 1, alignItems: 'center', marginHorizontal: 12 },
   headerTitle: { fontSize: 18, fontWeight: '800' },
   headerSubtitle: { fontSize: 12, fontWeight: '500', marginTop: 2 },
-  backBtn: { padding: 4 },
-  refreshBtn: { padding: 4 },
+  backBtn: { width: 32, alignItems: 'flex-start' },
+  refreshBtn: { width: 32, alignItems: 'flex-end' },
 
   tabBar: {
     flexDirection: 'row', marginHorizontal: 16, borderRadius: 16, padding: 4,

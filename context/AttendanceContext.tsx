@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-// For persistence, we'd normally use AsyncStorage. 
-// If it's not installed, we'll use memory with a warning.
+import { useUser } from './UserContext';
 let AsyncStorage: any;
 try {
   AsyncStorage = require('@react-native-async-storage/async-storage').default;
@@ -29,55 +27,80 @@ interface AttendanceContextType {
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
+const STORAGE_KEY = 'miti_attendance_data';
 
 export function AttendanceProvider({ children }: { children: React.ReactNode }) {
   const [subjects, setSubjectsState] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const { profile } = useUser();
 
-  // Load from storage
+  const userId = profile?.email || 'user-miti-001';
+  const SERVER_URL = 'http://10.10.72.244:3005';
+
+  // Load from storage or server
   useEffect(() => {
-    const loadData = async () => {
-      if (AsyncStorage) {
-        try {
-          const saved = await AsyncStorage.getItem('miti_attendance_data');
-          if (saved) setSubjectsState(JSON.parse(saved));
-        } catch (e) {
-          console.error('Failed to load attendance data', e);
+    loadData();
+  }, [userId]);
+
+  const loadData = async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/api/attendance/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.subjects && data.subjects.length > 0) {
+          setSubjectsState(data.subjects);
+          if (AsyncStorage) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data.subjects));
+          setLoading(false);
+          return;
         }
       }
-      setLoading(false);
-    };
-    loadData();
-  }, []);
+    } catch (e) {
+      console.warn('Attendance backend fetch failed, falling back to local storage', e);
+    }
+    
+    // Fallback local cache
+    if (AsyncStorage) {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        if (saved) setSubjectsState(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load attendance data', e);
+      }
+    }
+    setLoading(false);
+  };
 
-  const setSubjects = async (newSubjects: Subject[]) => {
+  const saveSubjects = async (newSubjects: Subject[]) => {
     setSubjectsState(newSubjects);
-    if (AsyncStorage) {
-      await AsyncStorage.setItem('miti_attendance_data', JSON.stringify(newSubjects));
+    try {
+      if (AsyncStorage) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSubjects));
+      // Background sync to SQL
+      await fetch(`${SERVER_URL}/api/attendance/${userId}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjects: newSubjects }),
+      });
+    } catch (e) {
+      console.warn('Failed to save Attendance to server', e);
     }
   };
 
-  const updateAttendance = async (id: string, attended: number) => {
+  const setSubjects = (newSubjects: Subject[]) => {
+    saveSubjects(newSubjects);
+  };
+
+  const updateAttendance = (id: string, attended: number) => {
     const up = subjects.map(s => s.id === id ? { ...s, attended } : s);
-    setSubjectsState(up);
-    if (AsyncStorage) {
-      await AsyncStorage.setItem('miti_attendance_data', JSON.stringify(up));
-    }
+    saveSubjects(up);
   };
 
-  const removeSubject = async (id: string) => {
+  const removeSubject = (id: string) => {
     const filtered = subjects.filter(s => s.id !== id);
-    setSubjectsState(filtered);
-    if (AsyncStorage) {
-      await AsyncStorage.setItem('miti_attendance_data', JSON.stringify(filtered));
-    }
+    saveSubjects(filtered);
   };
 
-  const clearAttendance = async () => {
-    setSubjectsState([]);
-    if (AsyncStorage) {
-      await AsyncStorage.removeItem('miti_attendance_data');
-    }
+  const clearAttendance = () => {
+    saveSubjects([]);
   };
 
   return (
