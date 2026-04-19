@@ -1,81 +1,81 @@
-# 🌟 Lumina Student Hub (Miti App)
+# 🌟 Lumina SyncSpace 
 
-*An intelligent, unified academic ecosystem built to seamlessly track, predict, and optimize a student's university life.*
+*An intelligent, highly-persistent, and unified academic ecosystem built to seamlessly track, predict, and optimize a student's university life.*
 
-Lumina is a premium-grade React Native mobile application built to solve the disjointed experience of academic management. Instead of relying on multiple apps to track attendance, expenses, focus, and deadlines, Lumina unifies them into a single, beautiful dashboard empowered by AI and Emotional Intelligence.
+Lumina is a premium React Native mobile application built to solve the disjointed experience of academic management. Instead of relying on multiple apps to track attendance, expenses, focus, deadlines, and group projects, Lumina unifies them into a single, beautiful dashboard empowered by real-time persistence and data intelligence.
 
 ---
 
 ## 🏗️ Core Architecture & Tech Stack
 
-The platform is divided into two primary systems: a high-fidelity mobile frontend designed for Expo Go, and a lightweight but powerful Node.js backend to handle complex integrations securely.
+The platform is dynamically separated into two heavily integrated systems working in a local-network architecture.
 
 ### 📱 Frontend: React Native & Expo
-*   **Framework:** **Expo & React Native** – Chosen for rapid cross-platform development (iOS & Android) and hot-reloading.
-*   **Navigation:** **Expo Router** – File-based routing makes managing tabs and drill-down screens highly intuitive and modular.
-*   **Styling & UI:** Pure **React Native StyleSheet** + **React Native Reanimated** – To deliver stunning glassmorphism, micro-animations, and 60fps interactive UI elements without sacrificing performance.
-*   **Icons:** **Lucide React Native** – A clean, modern icon library that integrates seamlessly into React Native.
+*   **Framework:** **Expo & React Native** – Chosen for rapid cross-platform deployment (iOS & Android).
+*   **Navigation:** **Expo Router & React Navigation** – File-based routing driving sophisticated drill-down modals, tabs, and protected gateway routing (Auth-Guards).
+*   **Styling & UI:** Pure **React Native StyleSheet** + **Reanimated** – Powers gorgeous 60fps micro-animations, glassmorphism blur effects, scaling cards, and completely bespoke interactive components.
+*   **Offline First:** Extensive use of `AsyncStorage` combined with custom React Contexts to serve as a fast fallback when network states change.
 
-### ⚙️ Backend: Node.js & Express
-*   **Runtime:** **Node.js + Express** – Operates on port `3005`. It serves as the proxy and computational brain of the app.
-*   **Server-Side OAuth Engine:** Built explicitly to bypass Expo Go's native module limitations (e.g., `expo-crypto` crashes). The Node server generates Google verification links, handles the exact URI redirects, and performs automated background polling to seamlessly exchange access tokens to the mobile device.
-*   **In-Memory Caching:** Prevents excessive API hits by caching heatmap data and Google signals to ensure the UI feels instant.
-
-### 🧠 AI & Integrations
-*   **Google Gemini API:** Utilized as the NLP engine. It parses OCR text (from timetable screenshots) to automatically build class schedules and handles heuristic academic insight generation.
-*   **Google Auth, Calendar & Gmail APIs:** Allows the app to deeply integrate with the student's actual life. The app reads upcoming deadlines, exam emails, and scheduled classes to scientifically calculate real-life stress.
+### ⚙️ Backend: Node.js, Express & SQLite
+*   **Runtime:** **Node.js + Express** – The main proxy server binding the application together.
+*   **Persistence Layer:** **SQLite 3** – Used to build a fully robust standalone `database.sqlite` backend. It actively structures, partitions, and persists:
+    *   `Users` and OAuth Profiles
+    *   `PersonalTasks` & `SquadTasks` (Kanban boards)
+    *   `Expenses` Records
+*   **Real-time Collaboration Engine:** **Socket.io** enables instantaneous peer-to-peer event emission. Manages live virtual rooms (Squads), whiteboard streams, chat payloads, hands-raising state, and live multi-player Kanban synchronization.
+*   **OAuth Proxy Pipeline:** Built explicitly to bypass Expo Go's security limitations on mobile—our proxy initiates Google credential negotiations, manages time-to-live refresh tokens, and ferries data back to the mobile app via a session ID poll.
 
 ---
 
-## ⚡ Key Features & Engineering Breakdown
+## ⚡ Key Modules & Features
 
-### 1. 🌡️ The Academic Stress Engine
-*   **What it does:** Replaces a static "up next" list with a psychologically intelligent Heatmap and "Stress Meter".
-*   **How it works:** 
-    *   The user successfully connects their Google Account (via our custom Node server bypass). 
-    *   The backend pulls their Google Calendar events and Gmail inbox signals.
-    *   The emails and events are scanned for academic keywords (`Assignment`, `Exam`, `Submission`, `Due`).
-    *   A sophisticated algorithm assigns weights to generate a **Cognitive Stress Score (low/medium/high)**, rendering a dynamic color-coded 28-day Heatmap.
+### 1. 🔐 Centralized Auth & Dual Dashboard Portals
+*   The entire application is completely protected behind a **Google OAuth Gateway**. 
+*   Initial boot forces unauthenticated users to a custom-designed Login portal.
+*   Upon connection, the app unpacks the user's Google Directory Profile (Name & Email), stores it universally, and dynamically renders the **Dual Dashboard Portals**—an Email Sync widget, and an immersive Calendar Heatmap portal.
 
-### 2. 🧠 Focus & Cognitive Analytics
-*   **What it does:** Tracks deep work sessions and calculates a "cognitive score" based on uninterrupted focus and context-switching rates.
-*   **How it works:** It uses React Native's `AppState` API to actively monitor when the student leaves the app. By logging exit/return events, duration, and target time, it scientifically determines how focused the student actually was, giving real-world insights rather than a simple stopwatch.
+### 2. 👥 SyncSpace (Real-Time Squads)
+*   **Create & Join specific Room IDs** to jump into live collaborative sessions via Socket.io.
+*   **Live Multi-user Kanban**: Drag, drop, and edit Kanban tasks that immediately bounce across all connected clients and save into the SQLite database simultaneously.
+*   Includes **Live Chat**, **Hand Raising**, and a synchronized **Interactive Whiteboard** drawing layer.
 
-### 3. 📸 AI Timetable & Attendance System
-*   **What it does:** Tracks the complex web of university attendances using a dynamic grid.
-*   **How it works:** Uses the **Google Gemini API** to bridge the gap between physical schedules and data. The system extracts structured JSON classes directly from raw screen texts/screenshots, automatically populating the student's attendance buckets.
+### 3. 🌡️ The Calendar Heatmap Engine
+*   A visually striking horizontal calendar widget that parses real-world deadlines (dummy-data injected for the prototype) and classes to generate a heatmap stress distribution (Safe = Green, Warning = Orange, Critical = Red).
 
-### 4. 💸 Expense & Lifestyle Tracking
-*   **What it does:** A comprehensive modular tab tracking the financial footprint of a student's daily life. 
-*   **How it works:** Fully client-side state management that aggregates daily spending securely using `AsyncStorage`.
+### 4. 📝 Personal Kanban & Expense Tracking
+*   Seamlessly partitioned data using the verified Google Email address as a Unique ID.
+*   **Kanban Module:** Full CRUD operations on categorized `Todo`, `In-Progress`, and `Done` states.
+*   **Expense Tracker:** Categorized finance graphs merging local AsyncStorage caches seamlessly with `/api/expenses/sync` batch-upserts inside the SQLite database.
 
-### 5. 🤝 Miti / Squad Collaboration (SyncSpace)
-*   **What it does:** A real-time collaboration screen designed for group projects.
-*   **How it works:** Includes dynamic interactive panels, custom emoji overlays, and layout engines for peer-to-peer productivity environments.
+### 5. 🧠 Focus & Cognitive Analytics
+*   Tracks deep work sessions efficiently. It calculates a "cognitive score" based on uninterrupted focus blocks while factoring in active-break intervals, logging the absolute efficiency of study sessions without intrusive stopwatch limitations.
 
 ---
 
 ## 🛠️ How to Run the Project Locally
 
-Because of the dual-architecture approach, you must run both the Frontend and the Backend simultaneously to ensure features like Google Integration and Analytics work.
+Because of the dense backend architecture, you **must** run both the Node Server and the React Native frontend simultaneously on the same network environment.
 
-1. **Fire up the Backend:**
-   Open a terminal, navigate to the `server/` folder and run:
-   ```bash
-   cd server
-   node index.js
-   ```
-   *(This starts the API, OAuth flow, and Gemini endpoint on `localhost:3005`)*
+### 1. Fire up the Backend Server
+Open a terminal, navigate into the `server/` folder and boot the environment:
+```bash
+cd server
+npm install
+node index.js
+```
+*(This starts the SQLite database, REST APIs, OAuth tunnels, and the Socket.io WebSocket on port `3005`)*
 
-2. **Start the Mobile Frontend:**
-   Open a second terminal window, navigate to the `miti-folder/` root and run:
-   ```bash
-   npx expo start
-   ```
-   *(Scan the QR code with your iOS Camera or Expo Go Android app to launch Lumina).*
+### 2. Start the Mobile Client
+Open a second terminal window, stay in the root `miti-folder/` directory and run:
+```bash
+npm install
+npx expo start
+```
+*(Scan the QR code with your iOS Camera or Expo Go Android app).*
 
-3. **Google OAuth Config:**
-   If running on a phone, ensure both devices are on the same Wi-Fi. The backend auto-generates your dynamic IP Address URL for Google Cloud's Authorized Redirect URIs.
+### 3. Critical Network Configuration
+1. To ensure real-time Squads functionality works on your physical phone, you must change the hardcoded `10.x.x.x` IPs located in `server/index.js` and your React Native context connection files to match your exact Local Wi-Fi IPv4 Address. 
+2. Because mobile Google policies block localhost Expo re-directing natively, when you hit the "Sign in with Google" button, copy the generated link and paste it into your Computer's Browser to log in. The app will detect the handshake, log you in automatically, and drop you into the Home Dashboard!
 
 ---
-*Built meticulously for seamless academic efficiency.*
+*Built meticulously for seamless academic efficiency and real-time collaboration.*
